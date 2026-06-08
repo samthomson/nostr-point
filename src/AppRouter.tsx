@@ -5,6 +5,7 @@ import Index from "./pages/Index";
 import EditPresentation from "./pages/EditPresentation";
 import PresentationViewer from "./pages/PresentationViewer";
 import PresenterMode from "./pages/PresenterMode";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -14,6 +15,7 @@ export function AppRouter() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/new" element={<EditPresentation />} />
+        <Route path="/settings" element={<Settings />} />
         {/* Presenter mode - must come before generic nip19 route */}
         <Route path="/:nip19/present" element={<PresenterMode />} />
         {/* Edit existing presentation */}

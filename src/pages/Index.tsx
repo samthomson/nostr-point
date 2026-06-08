@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { Link } from 'react-router-dom';
-import { Plus, Layers, WifiOff, Cloud } from 'lucide-react';
+import { Plus, Layers, WifiOff, Cloud, Settings } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,7 +25,7 @@ const Index = () => {
   const cachedPresentations = useCachedPresentations();
   
   useSeoMeta({
-    title: 'Nostr Slides - Decentralized Presentations',
+    title: 'Nostr Point - Decentralized Presentations',
     description: 'Create, share, and present slide decks on Nostr. With offline support and presenter mode.',
   });
 
@@ -72,7 +72,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <Layers className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold">Nostr Slides</span>
+            <span className="text-xl font-bold">Nostr Point</span>
           </Link>
           
           <div className="flex items-center gap-4">
@@ -92,6 +92,12 @@ const Index = () => {
               </Button>
             )}
             
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/settings">
+                <Settings className="w-5 h-5" />
+              </Link>
+            </Button>
+            
             <LoginArea className="max-w-48" />
           </div>
         </div>
@@ -101,7 +107,7 @@ const Index = () => {
       <section className="bg-gradient-to-b from-primary/5 to-background py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Presentations on Nostr
+            Nostr Point
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Create beautiful slide decks, share them on the decentralized web, 
