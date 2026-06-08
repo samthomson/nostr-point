@@ -13,6 +13,7 @@ import {
   Home,
   Monitor,
   Layers,
+  Pencil,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import { SlideRenderer } from '@/components/SlideRenderer';
 import { usePresentation } from '@/hooks/usePresentations';
 import { useOfflinePresentation, useOfflinePresentationData } from '@/hooks/useOfflinePresentation';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { formatDuration, formatTime, type Presentation } from '@/lib/types';
 
 export default function PresentationViewer() {
@@ -51,7 +53,11 @@ export default function PresentationViewer() {
   const isLoading = onlinePresentation.isLoading && offlinePresentation.isLoading;
   
   const author = useAuthor(presentation?.pubkey);
+  const { user } = useCurrentUser();
   const { status, cacheForOffline, isCaching, cacheProgress } = useOfflinePresentation(presentation);
+  
+  // Check if current user is the author
+  const isAuthor = user && presentation && user.pubkey === presentation.pubkey;
   
   const [currentSlide, setCurrentSlide] = useState(0);
   
@@ -188,6 +194,15 @@ export default function PresentationViewer() {
               <Maximize className="w-4 h-4 mr-2" />
               Fullscreen
             </Button>
+            
+            {isAuthor && (
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/${nip19Param}/edit`}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit
+                </Link>
+              </Button>
+            )}
             
             <Button onClick={startPresenterMode}>
               <Monitor className="w-4 h-4 mr-2" />
