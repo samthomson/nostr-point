@@ -5,8 +5,10 @@ import {
   PRESENTATION_KIND, 
   type Slide, 
   type PresentationContent,
+  type Presentation,
   calculateTotalDuration,
   formatDuration,
+  parsePresentation,
 } from '@/lib/types';
 
 interface PublishPresentationParams {
@@ -60,10 +62,20 @@ export function usePublishPresentation() {
         tags,
       });
       
-      return event;
+      return { event, identifier };
     },
-    onSuccess: () => {
-      // Invalidate presentations queries to refetch
+    onSuccess: ({ event, identifier }) => {
+      // Pre-populate the query cache with the published event
+      // This ensures the viewer page can display it immediately without waiting for relay
+      const presentation = parsePresentation(event);
+      if (presentation) {
+        queryClient.setQueryData(
+          ['presentation', event.pubkey, identifier],
+          presentation
+        );
+      }
+      
+      // Invalidate list queries to refetch
       queryClient.invalidateQueries({ queryKey: ['presentations'] });
       queryClient.invalidateQueries({ queryKey: ['my-presentations'] });
     },

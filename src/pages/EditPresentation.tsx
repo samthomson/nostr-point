@@ -183,7 +183,7 @@ export default function EditPresentation() {
       summary: summary.trim() || undefined,
       topics: topics.split(',').map(t => t.trim()).filter(Boolean),
     }, {
-      onSuccess: (event) => {
+      onSuccess: ({ event }) => {
         toast({ title: 'Presentation saved!' });
         const naddr = nip19.naddrEncode({
           kind: event.kind,
