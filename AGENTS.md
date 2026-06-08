@@ -336,7 +336,7 @@ For font installation, color-scheme changes, light/dark theming, or the `isolate
 **Your task is not finished until the code type-checks and builds without errors.** In priority order:
 
 1. **Type check** (required)
-2. **Build/compile** (required)
+2. **Build/compile** (required) — **IMPORTANT: The user can only see changes in the preview after running `build_project`. Always build after making changes!**
 3. **Lint** (recommended; fix anything critical)
 4. **Run tests** (if available)
 5. **Git commit** (required)
