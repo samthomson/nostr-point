@@ -25,6 +25,7 @@ import {
   calculateTotalDuration,
   getExpectedTimeForSlide,
   calculateExpectedSlideIndex,
+  getSlideLabel,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -334,7 +335,7 @@ export default function PresenterMode() {
                   {currentSlide + 1} / {presentation.slides.length}
                 </div>
                 <div className="text-sm text-slate-400">
-                  {slide.title || `Slide ${currentSlide + 1}`}
+                  {getSlideLabel(slide, currentSlide)}
                 </div>
               </div>
               

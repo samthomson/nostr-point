@@ -5,7 +5,6 @@ import { nip19 } from 'nostr-tools';
 import { 
   ArrowLeft, 
   ArrowRight, 
-  Play, 
   Maximize, 
   Download,
   CheckCircle,
@@ -26,7 +25,7 @@ import { usePresentation } from '@/hooks/usePresentations';
 import { useOfflinePresentation, useOfflinePresentationData } from '@/hooks/useOfflinePresentation';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { formatDuration, formatTime, type Presentation } from '@/lib/types';
+import { formatDuration, getSlideLabel } from '@/lib/types';
 
 export default function PresentationViewer() {
   const { nip19: nip19Param } = useParams<{ nip19: string }>();
@@ -235,9 +234,7 @@ export default function PresentationViewer() {
             <span className="text-lg font-medium">
               {currentSlide + 1} / {presentation.slides.length}
             </span>
-            {slide.title && (
-              <span className="text-muted-foreground">• {slide.title}</span>
-            )}
+            <span className="text-muted-foreground">• {getSlideLabel(slide, currentSlide)}</span>
           </div>
           
           <Button
@@ -269,8 +266,8 @@ export default function PresentationViewer() {
                 }
               `}
             >
-              <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                <span className="text-white text-xs font-medium">{i + 1}</span>
+              <div className="w-full h-full bg-slate-800 pointer-events-none">
+                <SlideRenderer slide={s} />
               </div>
             </button>
           ))}

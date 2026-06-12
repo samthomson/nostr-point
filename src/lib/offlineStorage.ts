@@ -191,8 +191,14 @@ export function extractMediaUrls(presentation: Presentation): string[] {
     urls.push(presentation.image);
   }
   
-  // Slide images and backgrounds
+  // Slide element images and backgrounds
   for (const slide of presentation.slides) {
+    for (const element of slide.elements ?? []) {
+      if (element.type === 'image' && element.src?.startsWith('http')) {
+        urls.push(element.src);
+      }
+    }
+    // Legacy v1 slide image
     if (slide.image) {
       urls.push(slide.image);
     }
