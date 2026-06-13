@@ -118,18 +118,21 @@ export function generateElementId(): string {
 }
 
 /**
- * Generate a random opaque identifier for a presentation's `d` tag.
- * Uses crypto.randomUUID when available, with a fallback. The value is
- * deliberately meaningless (no title-derived text) — users never see it.
+ * Generate a short, random, opaque identifier for a presentation's `d` tag.
+ * 12 base36 chars (~62 bits) — plenty of uniqueness per user, but compact in
+ * the naddr/URL. The value is deliberately meaningless; users never see it.
  */
 export function generatePresentationId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    for (const b of bytes) id += chars[b % chars.length];
+  } else {
+    for (let i = 0; i < 12; i++) id += chars[Math.floor(Math.random() * chars.length)];
   }
-  // Fallback: 32 hex chars
-  return Array.from({ length: 32 }, () =>
-    Math.floor(Math.random() * 16).toString(16)
-  ).join('');
+  return id;
 }
 
 /**
