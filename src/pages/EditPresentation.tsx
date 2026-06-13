@@ -427,8 +427,8 @@ export default function EditPresentation() {
 
       <div className="flex flex-1 min-h-0">
         {/* Slide List Sidebar */}
-        <aside className="w-52 border-r bg-muted/30 flex flex-col flex-shrink-0">
-          <div className="space-y-2 px-3 py-3 overflow-y-auto flex-1">
+        <aside className="w-52 border-r bg-muted/30 overflow-y-auto flex-shrink-0">
+          <div className="space-y-2 px-3 py-3">
             {slides.map((slide, index) => (
               <div
                 key={index}
@@ -496,10 +496,8 @@ export default function EditPresentation() {
                 </div>
               </div>
             ))}
-          </div>
 
-          {/* Add Slide at the bottom */}
-          <div className="p-3 border-t bg-muted/30">
+            {/* Add Slide directly after the last slide */}
             <Button onClick={addSlide} className="w-full" variant="outline" size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Add Slide
