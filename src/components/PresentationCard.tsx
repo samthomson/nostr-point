@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock, Layers, Download, CheckCircle, Wifi, WifiOff } from 'lucide-react';
+import { Clock, Layers, Download, CheckCircle, Wifi, WifiOff, Pencil } from 'lucide-react';
 import { nip19 } from 'nostr-tools';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useOfflinePresentation, useIsOffline } from '@/hooks/useOfflinePresentation';
 import { formatDuration, type Presentation } from '@/lib/types';
 
@@ -16,6 +17,7 @@ interface PresentationCardProps {
 
 export function PresentationCard({ presentation }: PresentationCardProps) {
   const author = useAuthor(presentation.pubkey);
+  const { user } = useCurrentUser();
   const { status, cacheForOffline, isCaching, cacheProgress } = useOfflinePresentation(presentation);
   const isOffline = useIsOffline();
   
@@ -28,23 +30,41 @@ export function PresentationCard({ presentation }: PresentationCardProps) {
   const authorName = author.data?.metadata?.name ?? 
     presentation.pubkey.slice(0, 8) + '...';
   
+  const isAuthor = user && user.pubkey === presentation.pubkey;
+  
   return (
     <Card className="group overflow-hidden hover:shadow-lg transition-shadow">
-      <Link to={`/${naddr}`}>
-        {presentation.image ? (
-          <div className="aspect-video bg-muted overflow-hidden">
-            <img 
-              src={presentation.image} 
-              alt={presentation.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-        ) : (
-          <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-            <Layers className="w-12 h-12 text-primary/40" />
-          </div>
+      <div className="relative">
+        <Link to={`/${naddr}`}>
+          {presentation.image ? (
+            <div className="aspect-video bg-muted overflow-hidden">
+              <img 
+                src={presentation.image} 
+                alt={presentation.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+          ) : (
+            <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+              <Layers className="w-12 h-12 text-primary/40" />
+            </div>
+          )}
+        </Link>
+        
+        {isAuthor && (
+          <Button
+            asChild
+            variant="secondary"
+            size="sm"
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+          >
+            <Link to={`/${naddr}/edit`}>
+              <Pencil className="w-4 h-4 mr-1" />
+              Edit
+            </Link>
+          </Button>
         )}
-      </Link>
+      </div>
       
       <CardHeader className="pb-2">
         <Link to={`/${naddr}`} className="hover:underline">
