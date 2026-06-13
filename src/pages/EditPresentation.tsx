@@ -32,11 +32,11 @@ import {
 import { SlideCanvas } from '@/components/SlideCanvas';
 import { SlideRenderer } from '@/components/SlideRenderer';
 import { ElementProperties } from '@/components/ElementProperties';
+import { ImagePickerDialog } from '@/components/ImagePickerDialog';
 import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePresentation } from '@/hooks/usePresentations';
 import { usePublishPresentation } from '@/hooks/usePublishPresentation';
-import { useUploadFile } from '@/hooks/useUploadFile';
 import {
   type Slide,
   type SlideElement,
@@ -58,16 +58,11 @@ function generateSlug(title: string): string {
     .slice(0, 50) || 'untitled';
 }
 
-function pickImageFile(onPick: (file: File) => void) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.onchange = (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (file) onPick(file);
-  };
-  input.click();
-}
+/** What the image picker dialog is targeting when it resolves */
+type ImageTarget =
+  | { kind: 'new' }
+  | { kind: 'replace'; elementId: string }
+  | { kind: 'cover' };
 
 export default function EditPresentation() {
   const { nip19: nip19Param } = useParams<{ nip19: string }>();
@@ -110,6 +105,7 @@ export default function EditPresentation() {
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [imageTarget, setImageTarget] = useState<ImageTarget | null>(null);
 
   // Update state when existing data loads
   const isInitialized = useState(false);
@@ -124,7 +120,6 @@ export default function EditPresentation() {
   }
 
   const { mutate: publish, isPending: isPublishing } = usePublishPresentation();
-  const { mutate: uploadFile, isPending: isUploading } = useUploadFile();
 
   useSeoMeta({
     title: isEditing ? `Edit: ${title || 'Presentation'}` : 'New Presentation',
@@ -243,68 +238,19 @@ export default function EditPresentation() {
     }));
   }, [selectedSlideIndex, selectedElementId]);
 
-  const handleAddImage = useCallback(() => {
-    pickImageFile((file) => {
-      uploadFile(file, {
-        onSuccess: (tags) => {
-          const urlTag = tags.find(t => t[0] === 'url');
-          if (urlTag) {
-            addElement(createImageElement(urlTag[1]));
-            toast({ title: 'Image added!' });
-          }
-        },
-        onError: (error) => {
-          toast({
-            title: 'Upload failed',
-            description: error.message,
-            variant: 'destructive',
-          });
-        },
-      });
-    });
-  }, [uploadFile, addElement, toast]);
-
-  const handleReplaceImage = useCallback(() => {
-    pickImageFile((file) => {
-      uploadFile(file, {
-        onSuccess: (tags) => {
-          const urlTag = tags.find(t => t[0] === 'url');
-          if (urlTag) {
-            updateSelectedElement({ src: urlTag[1] });
-            toast({ title: 'Image updated!' });
-          }
-        },
-        onError: (error) => {
-          toast({
-            title: 'Upload failed',
-            description: error.message,
-            variant: 'destructive',
-          });
-        },
-      });
-    });
-  }, [uploadFile, updateSelectedElement, toast]);
-
-  const handleCoverUpload = useCallback(() => {
-    pickImageFile((file) => {
-      uploadFile(file, {
-        onSuccess: (tags) => {
-          const urlTag = tags.find(t => t[0] === 'url');
-          if (urlTag) {
-            setCoverImage(urlTag[1]);
-            toast({ title: 'Cover image uploaded!' });
-          }
-        },
-        onError: (error) => {
-          toast({
-            title: 'Upload failed',
-            description: error.message,
-            variant: 'destructive',
-          });
-        },
-      });
-    });
-  }, [uploadFile, toast]);
+  // Resolve image picker selection based on the current target
+  const handleImagePicked = useCallback((url: string) => {
+    const target = imageTarget;
+    if (!target) return;
+    if (target.kind === 'new') {
+      addElement(createImageElement(url));
+    } else if (target.kind === 'replace') {
+      updateSelectedElement({ src: url });
+    } else if (target.kind === 'cover') {
+      setCoverImage(url);
+    }
+    setImageTarget(null);
+  }, [imageTarget, addElement, updateSelectedElement]);
 
   // ----- Save -----
 
@@ -388,14 +334,9 @@ export default function EditPresentation() {
             <Button
               variant="ghost"
               size="sm"
-              disabled={isUploading}
-              onClick={handleAddImage}
+              onClick={() => setImageTarget({ kind: 'new' })}
             >
-              {isUploading ? (
-                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-              ) : (
-                <ImageIcon className="w-4 h-4 mr-1" />
-              )}
+              <ImageIcon className="w-4 h-4 mr-1" />
               Image
             </Button>
             <Button
@@ -533,8 +474,7 @@ export default function EditPresentation() {
               onChange={updateSelectedElement}
               onDelete={deleteSelectedElement}
               onLayerChange={changeElementLayer}
-              onImageUpload={handleReplaceImage}
-              isUploading={isUploading}
+              onPickImage={() => setImageTarget({ kind: 'replace', elementId: selectedElement.id })}
             />
           ) : (
             <div className="space-y-4">
@@ -626,7 +566,13 @@ export default function EditPresentation() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder={generateSlug(title) || 'my-presentation'}
+                disabled={isEditing}
               />
+              <p className="text-xs text-muted-foreground">
+                {isEditing
+                  ? 'The slug is fixed once published — saving updates this presentation in place.'
+                  : 'A unique id for this presentation. Saving with the same slug edits it; a new slug creates a separate presentation.'}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -662,14 +608,9 @@ export default function EditPresentation() {
                 <Button
                   variant="outline"
                   size="icon"
-                  disabled={isUploading}
-                  onClick={handleCoverUpload}
+                  onClick={() => setImageTarget({ kind: 'cover' })}
                 >
-                  {isUploading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ImageIcon className="w-4 h-4" />
-                  )}
+                  <ImageIcon className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -714,6 +655,13 @@ export default function EditPresentation() {
           <Button onClick={() => setEditingTextId(null)}>Done</Button>
         </DialogContent>
       </Dialog>
+
+      {/* Image Picker Dialog */}
+      <ImagePickerDialog
+        open={Boolean(imageTarget)}
+        onOpenChange={(open) => !open && setImageTarget(null)}
+        onPick={handleImagePicked}
+      />
     </div>
   );
 }

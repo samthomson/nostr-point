@@ -1,10 +1,11 @@
 import { useSeoMeta } from '@unhead/react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Wifi, Layers } from 'lucide-react';
+import { ArrowLeft, Wifi, Layers, ImageIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RelayListManager } from '@/components/RelayListManager';
+import { BlossomServerManager } from '@/components/BlossomServerManager';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
@@ -80,6 +81,24 @@ export default function Settings() {
           </CardHeader>
           <CardContent>
             <RelayListManager />
+          </CardContent>
+        </Card>
+
+        {/* Media / Blossom Settings */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-primary" />
+              <CardTitle>Media Servers</CardTitle>
+            </div>
+            <CardDescription>
+              Images you upload are stored on Blossom servers. Configure where your
+              media is hosted. The first server in the list is used first.
+              {!user && ' Log in to sync your server list to Nostr.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BlossomServerManager />
           </CardContent>
         </Card>
 

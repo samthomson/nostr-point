@@ -6,7 +6,6 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
-  Loader2,
   Image as ImageIcon,
 } from 'lucide-react';
 
@@ -30,8 +29,7 @@ interface ElementPropertiesProps {
   onChange: (updates: Partial<SlideElement>) => void;
   onDelete: () => void;
   onLayerChange: (direction: 'up' | 'down') => void;
-  onImageUpload: () => void;
-  isUploading: boolean;
+  onPickImage: () => void;
 }
 
 export function ElementProperties({
@@ -39,8 +37,7 @@ export function ElementProperties({
   onChange,
   onDelete,
   onLayerChange,
-  onImageUpload,
-  isUploading,
+  onPickImage,
 }: ElementPropertiesProps) {
   return (
     <div className="space-y-4">
@@ -230,28 +227,16 @@ export function ElementProperties({
       {element.type === 'image' && (
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label className="text-xs">Image URL</Label>
-            <div className="flex gap-1">
-              <Input
-                className="h-8 flex-1 text-xs"
-                value={element.src ?? ''}
-                onChange={(e) => onChange({ src: e.target.value })}
-                placeholder="https://..."
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                disabled={isUploading}
-                onClick={onImageUpload}
-              >
-                {isUploading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <ImageIcon className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
+            <Label className="text-xs">Image</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-8"
+              onClick={onPickImage}
+            >
+              <ImageIcon className="w-4 h-4 mr-2" />
+              Replace image
+            </Button>
           </div>
 
           <div className="space-y-1">
