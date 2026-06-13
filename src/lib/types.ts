@@ -118,6 +118,21 @@ export function generateElementId(): string {
 }
 
 /**
+ * Generate a random opaque identifier for a presentation's `d` tag.
+ * Uses crypto.randomUUID when available, with a fallback. The value is
+ * deliberately meaningless (no title-derived text) — users never see it.
+ */
+export function generatePresentationId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+  // Fallback: 32 hex chars
+  return Array.from({ length: 32 }, () =>
+    Math.floor(Math.random() * 16).toString(16)
+  ).join('');
+}
+
+/**
  * Migrate a legacy v1 slide (title/content/image/layout) to v2 elements.
  * Returns the slide unchanged if it already has elements.
  */

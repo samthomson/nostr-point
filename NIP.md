@@ -97,8 +97,8 @@ to the layout. Nostr Point performs this migration automatically when parsing.
 
 | Tag | Description |
 |-----|-------------|
-| `d` | Unique identifier/slug for the presentation (addressable) |
-| `title` | Human-readable presentation title |
+| `d` | Opaque random identifier for the presentation (addressable). Generated once (e.g. a UUID) and never derived from the title, so the title can change freely without affecting the identifier or its link. |
+| `title` | Human-readable presentation title (freely editable) |
 | `duration` | Total presentation duration in seconds (sum of all slide durations) |
 | `alt` | Human-readable description (NIP-31 compatibility) |
 
@@ -119,7 +119,7 @@ to the layout. Nostr Point performs this migration automatically when parsing.
   "created_at": 1780925428,
   "content": "{\"slides\":[{\"elements\":[{\"id\":\"a1b2c3d4\",\"type\":\"text\",\"x\":80,\"y\":250,\"width\":1120,\"height\":140,\"content\":\"# Introduction to Nostr\",\"fontSize\":72,\"align\":\"center\"},{\"id\":\"e5f6g7h8\",\"type\":\"image\",\"x\":340,\"y\":420,\"width\":600,\"height\":240,\"src\":\"https://blossom.example/abc.jpg\",\"fit\":\"contain\"}],\"duration\":60,\"notes\":\"Welcome everyone\"}]}",
   "tags": [
-    ["d", "intro-to-nostr-2026"],
+    ["d", "f47ac10b-58cc-4372-a567-0e02b2c3d479"],
     ["title", "Introduction to Nostr"],
     ["summary", "A 1-minute introduction to the Nostr protocol"],
     ["duration", "60"],
@@ -189,7 +189,7 @@ nostr.query([{
 Presentations can be referenced using NIP-19 `naddr` encoding:
 
 ```
-naddr1<...kind=36387&pubkey=...&d=intro-to-nostr-2026...>
+naddr1<...kind=36387&pubkey=...&d=f47ac10b-58cc-4372-a567-0e02b2c3d479...>
 ```
 
 This allows sharing direct links to presentations that work across clients.

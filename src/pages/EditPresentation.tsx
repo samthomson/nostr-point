@@ -29,16 +29,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { SlideCanvas } from '@/components/SlideCanvas';
 import { SlideRenderer } from '@/components/SlideRenderer';
 import { ElementProperties } from '@/components/ElementProperties';
@@ -47,9 +37,7 @@ import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePresentation } from '@/hooks/usePresentations';
 import { usePublishPresentation } from '@/hooks/usePublishPresentation';
-import { useNostrPublish } from '@/hooks/useNostrPublish';
 import {
-  PRESENTATION_KIND,
   type Slide,
   type SlideElement,
   createEmptySlide,
@@ -57,18 +45,11 @@ import {
   createImageElement,
   createShapeElement,
   createEmptyPresentationContent,
+  generatePresentationId,
   formatDuration,
   calculateTotalDuration,
   getSlideLabel,
 } from '@/lib/types';
-
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 50) || 'untitled';
-}
 
 /** What the image picker dialog is targeting when it resolves */
 type ImageTarget =
@@ -101,11 +82,14 @@ export default function EditPresentation() {
   );
 
   const isEditing = Boolean(existingData);
-  const originalIdentifier = existingData?.identifier ?? '';
+
+  // The presentation's stable identifier (d tag). For new presentations this is
+  // a random UUID generated once; for edits it's the existing one. Users never
+  // see or edit this — the title is the only human-facing name.
+  const [identifier] = useState(() => existingData?.identifier ?? generatePresentationId());
 
   // Form state
   const [title, setTitle] = useState('');
-  const [identifier, setIdentifier] = useState('');
   const [summary, setSummary] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [topics, setTopics] = useState('');
@@ -119,13 +103,11 @@ export default function EditPresentation() {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [imageTarget, setImageTarget] = useState<ImageTarget | null>(null);
-  const [pendingSlugChange, setPendingSlugChange] = useState<string | null>(null);
 
   // Update state when existing data loads
   const isInitialized = useState(false);
   if (existingPresentation.data && !isInitialized[0]) {
     setTitle(existingPresentation.data.title);
-    setIdentifier(existingPresentation.data.id);
     setSummary(existingPresentation.data.summary ?? '');
     setCoverImage(existingPresentation.data.image ?? '');
     setTopics(existingPresentation.data.topics.join(', '));
@@ -134,7 +116,6 @@ export default function EditPresentation() {
   }
 
   const { mutate: publish, isPending: isPublishing } = usePublishPresentation();
-  const { mutate: publishRaw } = useNostrPublish();
 
   useSeoMeta({
     title: isEditing ? `Edit: ${title || 'Presentation'}` : 'New Presentation',
@@ -269,9 +250,15 @@ export default function EditPresentation() {
 
   // ----- Save -----
 
-  const doPublish = useCallback((finalIdentifier: string, deleteOldSlug: string | null) => {
+  const handleSave = useCallback(() => {
+    if (!title.trim()) {
+      toast({ title: 'Title required', variant: 'destructive' });
+      setShowDetails(true);
+      return;
+    }
+
     publish({
-      identifier: finalIdentifier,
+      identifier,
       title: title.trim(),
       slides,
       image: coverImage || undefined,
@@ -279,20 +266,11 @@ export default function EditPresentation() {
       topics: topics.split(',').map(t => t.trim()).filter(Boolean),
     }, {
       onSuccess: ({ event }) => {
-        // If the slug changed during an edit, delete the old addressable event (NIP-09)
-        if (deleteOldSlug) {
-          const oldAddr = `${PRESENTATION_KIND}:${event.pubkey}:${deleteOldSlug}`;
-          publishRaw({
-            kind: 5,
-            content: 'Slug changed',
-            tags: [['a', oldAddr]],
-          });
-        }
         toast({ title: 'Presentation saved!' });
         const naddr = nip19.naddrEncode({
           kind: event.kind,
           pubkey: event.pubkey,
-          identifier: finalIdentifier,
+          identifier,
         });
         navigate(`/${naddr}`);
       },
@@ -304,25 +282,7 @@ export default function EditPresentation() {
         });
       },
     });
-  }, [title, slides, coverImage, summary, topics, publish, publishRaw, navigate, toast]);
-
-  const handleSave = useCallback(() => {
-    if (!title.trim()) {
-      toast({ title: 'Title required', variant: 'destructive' });
-      setShowDetails(true);
-      return;
-    }
-
-    const finalIdentifier = identifier.trim() || generateSlug(title);
-
-    // Slug changed during an edit — confirm before forking/deleting
-    if (isEditing && finalIdentifier !== originalIdentifier) {
-      setPendingSlugChange(finalIdentifier);
-      return;
-    }
-
-    doPublish(finalIdentifier, null);
-  }, [title, identifier, isEditing, originalIdentifier, doPublish, toast]);
+  }, [title, identifier, slides, coverImage, summary, topics, publish, navigate, toast]);
 
   if (!user) {
     return (
@@ -594,27 +554,6 @@ export default function EditPresentation() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="identifier">URL Slug</Label>
-              <Input
-                id="identifier"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value.replace(/\s+/g, '-').toLowerCase())}
-                placeholder={generateSlug(title) || 'my-presentation'}
-              />
-              {isEditing && identifier !== originalIdentifier ? (
-                <p className="text-xs text-amber-600 dark:text-amber-500">
-                  Changing the slug creates a <strong>new</strong> presentation at a new link.
-                  The old one ({originalIdentifier}) stays unless you delete it.
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  The ID used in this presentation&rsquo;s link. Auto-filled from the title,
-                  but you can set it to whatever you like &mdash; renaming the title later won&rsquo;t change it.
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="summary">Summary</Label>
               <Textarea
                 id="summary"
@@ -704,40 +643,6 @@ export default function EditPresentation() {
         onOpenChange={(open) => !open && setImageTarget(null)}
         onPick={handleImagePicked}
       />
-
-      {/* Slug Change Confirmation */}
-      <AlertDialog open={Boolean(pendingSlugChange)} onOpenChange={(open) => !open && setPendingSlugChange(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Change the presentation link?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You changed the slug from <strong>{originalIdentifier}</strong> to{' '}
-              <strong>{pendingSlugChange}</strong>. This creates a new presentation at a new
-              link. Choose what to do with the old one.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingSlugChange) doPublish(pendingSlugChange, null);
-                setPendingSlugChange(null);
-              }}
-              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            >
-              Keep both
-            </AlertDialogAction>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingSlugChange) doPublish(pendingSlugChange, originalIdentifier);
-                setPendingSlugChange(null);
-              }}
-            >
-              Replace (delete old)
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
