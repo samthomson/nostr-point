@@ -108,6 +108,8 @@ export default function EditPresentation() {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
 
   // Update state when existing data loads
   const isInitialized = useState(false);
@@ -178,16 +180,17 @@ export default function EditPresentation() {
     setSelectedElementId(null);
   }, [slides.length, selectedSlideIndex, toast]);
 
-  const moveSlide = useCallback((fromIndex: number, direction: 'up' | 'down') => {
-    const toIndex = direction === 'up' ? fromIndex - 1 : fromIndex + 1;
-    if (toIndex < 0 || toIndex >= slides.length) return;
+  const reorderSlide = useCallback((fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= slides.length) return;
 
     setSlides(prev => {
       const newSlides = [...prev];
-      [newSlides[fromIndex], newSlides[toIndex]] = [newSlides[toIndex], newSlides[fromIndex]];
+      const [moved] = newSlides.splice(fromIndex, 1);
+      newSlides.splice(toIndex, 0, moved);
       return newSlides;
     });
     setSelectedSlideIndex(toIndex);
+    setSelectedElementId(null);
   }, [slides.length]);
 
   // ----- Element operations -----
@@ -424,24 +427,36 @@ export default function EditPresentation() {
 
       <div className="flex flex-1 min-h-0">
         {/* Slide List Sidebar */}
-        <aside className="w-52 border-r bg-muted/30 overflow-y-auto flex-shrink-0">
-          <div className="p-3">
-            <Button onClick={addSlide} className="w-full" variant="outline" size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Slide
-            </Button>
-          </div>
-
-          <div className="space-y-2 px-3 pb-3">
+        <aside className="w-52 border-r bg-muted/30 flex flex-col flex-shrink-0">
+          <div className="space-y-2 px-3 py-3 overflow-y-auto flex-1">
             {slides.map((slide, index) => (
               <div
                 key={index}
+                draggable
+                onDragStart={(e) => {
+                  setDragIndex(index);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                  if (dropIndex !== index) setDropIndex(index);
+                }}
+                onDragEnd={() => {
+                  if (dragIndex !== null && dropIndex !== null) {
+                    reorderSlide(dragIndex, dropIndex);
+                  }
+                  setDragIndex(null);
+                  setDropIndex(null);
+                }}
                 className={`
-                  group relative rounded-lg border-2 cursor-pointer transition-colors overflow-hidden
+                  group relative rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all overflow-hidden
                   ${selectedSlideIndex === index
                     ? 'border-primary'
                     : 'border-transparent hover:border-muted-foreground/30'
                   }
+                  ${dragIndex === index ? 'opacity-40' : ''}
+                  ${dropIndex === index && dragIndex !== index ? 'ring-2 ring-primary ring-offset-2 ring-offset-muted' : ''}
                 `}
                 onClick={() => {
                   setSelectedSlideIndex(index);
@@ -464,22 +479,6 @@ export default function EditPresentation() {
                 </div>
 
                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex gap-0.5 bg-black/60 rounded p-0.5">
-                  {index > 0 && (
-                    <button
-                      className="h-5 w-5 text-white text-xs hover:bg-white/20 rounded"
-                      onClick={(e) => { e.stopPropagation(); moveSlide(index, 'up'); }}
-                    >
-                      ↑
-                    </button>
-                  )}
-                  {index < slides.length - 1 && (
-                    <button
-                      className="h-5 w-5 text-white text-xs hover:bg-white/20 rounded"
-                      onClick={(e) => { e.stopPropagation(); moveSlide(index, 'down'); }}
-                    >
-                      ↓
-                    </button>
-                  )}
                   <button
                     className="h-5 w-5 text-white hover:bg-white/20 rounded flex items-center justify-center"
                     title="Duplicate"
@@ -497,6 +496,14 @@ export default function EditPresentation() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Add Slide at the bottom */}
+          <div className="p-3 border-t bg-muted/30">
+            <Button onClick={addSlide} className="w-full" variant="outline" size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Slide
+            </Button>
           </div>
         </aside>
 

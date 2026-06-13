@@ -34,37 +34,21 @@ export function PresentationCard({ presentation }: PresentationCardProps) {
   
   return (
     <Card className="group overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative">
-        <Link to={`/${naddr}`}>
-          {presentation.image ? (
-            <div className="aspect-video bg-muted overflow-hidden">
-              <img 
-                src={presentation.image} 
-                alt={presentation.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-            </div>
-          ) : (
-            <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-              <Layers className="w-12 h-12 text-primary/40" />
-            </div>
-          )}
-        </Link>
-        
-        {isAuthor && (
-          <Button
-            asChild
-            variant="secondary"
-            size="sm"
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
-          >
-            <Link to={`/${naddr}/edit`}>
-              <Pencil className="w-4 h-4 mr-1" />
-              Edit
-            </Link>
-          </Button>
+      <Link to={`/${naddr}`}>
+        {presentation.image ? (
+          <div className="aspect-video bg-muted overflow-hidden">
+            <img 
+              src={presentation.image} 
+              alt={presentation.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        ) : (
+          <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+            <Layers className="w-12 h-12 text-primary/40" />
+          </div>
         )}
-      </div>
+      </Link>
       
       <CardHeader className="pb-2">
         <Link to={`/${naddr}`} className="hover:underline">
@@ -124,23 +108,34 @@ export function PresentationCard({ presentation }: PresentationCardProps) {
             </span>
           )}
           
-          {!status?.fullyOffline && !isOffline && (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                cacheForOffline();
-              }}
-              disabled={isCaching}
-            >
-              <Download className="w-4 h-4 mr-1" />
-              {isCaching && cacheProgress 
-                ? `${cacheProgress.cached}/${cacheProgress.total}`
-                : 'Save offline'
-              }
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {isAuthor && (
+              <Button asChild variant="ghost" size="sm">
+                <Link to={`/${naddr}/edit`}>
+                  <Pencil className="w-4 h-4 mr-1" />
+                  Edit
+                </Link>
+              </Button>
+            )}
+            
+            {!status?.fullyOffline && !isOffline && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  cacheForOffline();
+                }}
+                disabled={isCaching}
+              >
+                <Download className="w-4 h-4 mr-1" />
+                {isCaching && cacheProgress 
+                  ? `${cacheProgress.cached}/${cacheProgress.total}`
+                  : 'Save offline'
+                }
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
