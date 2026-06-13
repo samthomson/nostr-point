@@ -570,8 +570,8 @@ export default function EditPresentation() {
               />
               <p className="text-xs text-muted-foreground">
                 {isEditing
-                  ? 'The slug is fixed once published — saving updates this presentation in place.'
-                  : 'A unique id for this presentation. Saving with the same slug edits it; a new slug creates a separate presentation.'}
+                  ? 'The permanent ID in this presentation\u2019s link. Locked while editing so existing links keep working \u2014 you can still change the title freely above.'
+                  : 'The permanent ID used in this presentation\u2019s link. Auto-filled from the title; you can rename the title later without affecting it.'}
               </p>
             </div>
 
@@ -587,13 +587,16 @@ export default function EditPresentation() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="topics">Topics (comma-separated)</Label>
+              <Label htmlFor="topics">Tags (comma-separated)</Label>
               <Input
                 id="topics"
                 value={topics}
                 onChange={(e) => setTopics(e.target.value)}
                 placeholder="nostr, bitcoin, technology"
               />
+              <p className="text-xs text-muted-foreground">
+                Hashtags for discovery (stored as <code>t</code> tags on the event).
+              </p>
             </div>
 
             <div className="space-y-2">

@@ -223,27 +223,40 @@ export function BlossomServerManager() {
       </div>
 
       {/* Use app default servers toggle */}
-      <div className="flex items-center justify-between rounded-md border p-3">
-        <div className="space-y-0.5">
-          <Label htmlFor="use-app-servers" className="text-sm cursor-pointer">
-            Also use app default servers
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Fall back to {APP_BLOSSOM_SERVERS.servers.length} built-in servers when your own are unavailable.
-          </p>
+      <div className="rounded-md border p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="use-app-servers" className="text-sm cursor-pointer">
+              Also use app default servers
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Fall back to these built-in servers when your own are unavailable.
+            </p>
+          </div>
+          <Switch
+            id="use-app-servers"
+            checked={useAppServers}
+            onCheckedChange={handleToggleAppServers}
+          />
         </div>
-        <Switch
-          id="use-app-servers"
-          checked={useAppServers}
-          onCheckedChange={handleToggleAppServers}
-        />
+
+        {useAppServers && (
+          <div className="space-y-1 pl-1 border-l-2 border-muted ml-1">
+            {APP_BLOSSOM_SERVERS.servers.map((server) => (
+              <div key={server} className="flex items-center gap-2 text-xs text-muted-foreground pl-2">
+                <Server className="h-3 w-3 shrink-0" />
+                <span className="font-mono truncate">{renderUrl(server)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {!user && (
-        <p className="text-xs text-muted-foreground">
-          Log in to sync your media server list with Nostr.
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        {user
+          ? 'Your server list is synced from (and published to) Nostr as a kind 10063 event, so it follows you across devices and other Blossom-aware apps.'
+          : 'Log in to sync your media server list with Nostr (kind 10063).'}
+      </p>
     </div>
   );
 }
