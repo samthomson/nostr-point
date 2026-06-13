@@ -222,15 +222,16 @@ export function BlossomServerManager() {
         </Button>
       </div>
 
-      {/* Use app default servers toggle */}
+      {/* App default / suggested servers */}
       <div className="rounded-md border p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="use-app-servers" className="text-sm cursor-pointer">
-              Also use app default servers
+              Use these defaults as a fallback
             </Label>
             <p className="text-xs text-muted-foreground">
-              Fall back to these built-in servers when your own are unavailable.
+              When on, all of the built-in servers below are tried after your own.
+              Or add just the ones you want to your list.
             </p>
           </div>
           <Switch
@@ -240,16 +241,37 @@ export function BlossomServerManager() {
           />
         </div>
 
-        {useAppServers && (
-          <div className="space-y-1 pl-1 border-l-2 border-muted ml-1">
-            {APP_BLOSSOM_SERVERS.servers.map((server) => (
-              <div key={server} className="flex items-center gap-2 text-xs text-muted-foreground pl-2">
-                <Server className="h-3 w-3 shrink-0" />
-                <span className="font-mono truncate">{renderUrl(server)}</span>
+        <div className="space-y-1.5 pt-1">
+          {APP_BLOSSOM_SERVERS.servers.map((server) => {
+            const normalized = normalizeUrl(server);
+            const alreadyAdded = servers.some((s) => s === normalized);
+            return (
+              <div key={server} className="flex items-center gap-2 text-xs">
+                <Server className="h-3 w-3 shrink-0 text-muted-foreground" />
+                <span className="font-mono truncate flex-1 text-muted-foreground">
+                  {renderUrl(server)}
+                </span>
+                {alreadyAdded ? (
+                  <span className="text-muted-foreground shrink-0">In your list</span>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs shrink-0"
+                    onClick={() => {
+                      const newServers = [...servers, normalized];
+                      setServers(newServers);
+                      saveServers(newServers, useAppServers);
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
