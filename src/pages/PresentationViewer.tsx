@@ -215,7 +215,7 @@ export default function PresentationViewer() {
       <main className="flex-1 flex flex-col p-4 md:p-8 bg-muted/30">
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-6xl aspect-video rounded-xl overflow-hidden shadow-2xl">
-            <SlideRenderer slide={slide} />
+            <SlideRenderer slide={slide} theme={presentation.theme} />
           </div>
         </div>
         
@@ -267,7 +267,7 @@ export default function PresentationViewer() {
               `}
             >
               <div className="w-full h-full bg-slate-800 pointer-events-none">
-                <SlideRenderer slide={s} />
+                <SlideRenderer slide={s} theme={presentation.theme} />
               </div>
             </button>
           ))}

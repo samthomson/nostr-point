@@ -3,6 +3,7 @@ import {
   AlignCenter,
   AlignRight,
   Bold,
+  Heading,
   Trash2,
   ArrowUp,
   ArrowDown,
@@ -22,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import type { SlideElement } from '@/lib/types';
+import { FONT_LABELS, type SlideElement, type ThemeFont } from '@/lib/types';
 
 interface ElementPropertiesProps {
   element: SlideElement;
@@ -169,20 +170,41 @@ export function ElementProperties({
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Color</Label>
-              <div className="flex gap-1">
-                <input
-                  type="color"
-                  className="h-8 w-9 rounded border cursor-pointer bg-transparent"
-                  value={element.color ?? '#ffffff'}
-                  onChange={(e) => onChange({ color: e.target.value })}
-                />
-                <Input
-                  className="h-8 flex-1 font-mono text-xs"
-                  value={element.color ?? '#ffffff'}
-                  onChange={(e) => onChange({ color: e.target.value })}
-                />
-              </div>
+              <Label className="text-xs">Font</Label>
+              <Select
+                value={element.fontFamily ?? '__theme'}
+                onValueChange={(v) =>
+                  onChange({ fontFamily: v === '__theme' ? undefined : (v as ThemeFont) })
+                }
+              >
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__theme">Theme default</SelectItem>
+                  {(Object.keys(FONT_LABELS) as ThemeFont[]).map((f) => (
+                    <SelectItem key={f} value={f}>{FONT_LABELS[f]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Color override</Label>
+            <div className="flex gap-1">
+              <input
+                type="color"
+                className="h-8 w-9 rounded border cursor-pointer bg-transparent"
+                value={element.color ?? '#ffffff'}
+                onChange={(e) => onChange({ color: e.target.value })}
+              />
+              <Input
+                className="h-8 flex-1 font-mono text-xs"
+                value={element.color ?? ''}
+                onChange={(e) => onChange({ color: e.target.value || undefined })}
+                placeholder="Theme default"
+              />
             </div>
           </div>
 
@@ -218,6 +240,15 @@ export function ElementProperties({
               onClick={() => onChange({ bold: !element.bold })}
             >
               <Bold className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={element.heading ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              title="Use heading color from theme"
+              onClick={() => onChange({ heading: !element.heading })}
+            >
+              <Heading className="w-4 h-4" />
             </Button>
           </div>
         </div>

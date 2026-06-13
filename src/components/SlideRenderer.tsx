@@ -6,19 +6,23 @@ import { sanitizeUrl, sanitizeCssColor } from '@/lib/sanitize';
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
+  DEFAULT_THEME,
+  FONT_STACKS,
   type Slide,
   type SlideElement,
+  type Theme,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface SlideRendererProps {
   slide: Slide;
+  theme?: Theme;
   showNotes?: boolean;
   className?: string;
 }
 
-/** Renders a single positioned element (read-only) */
-export function ElementRenderer({ element }: { element: SlideElement }) {
+/** Renders a single positioned element (read-only), inheriting theme defaults */
+export function ElementRenderer({ element, theme }: { element: SlideElement; theme: Theme }) {
   const { url: cachedSrc } = useCachedImage(
     element.type === 'image' ? element.src : undefined
   );
@@ -38,14 +42,22 @@ export function ElementRenderer({ element }: { element: SlideElement }) {
   };
 
   if (element.type === 'text') {
+    // Theme inheritance: explicit element color wins, else heading/body theme color
+    const themeColor = element.heading
+      ? sanitizeCssColor(theme.headingColor)
+      : sanitizeCssColor(theme.textColor);
+    const color = safeColor ?? themeColor ?? '#ffffff';
+    const fontFamily = FONT_STACKS[element.fontFamily ?? theme.font];
+
     return (
       <div
         style={{
           ...baseStyle,
           fontSize: element.fontSize ?? 32,
-          color: safeColor ?? '#ffffff',
+          color,
+          fontFamily,
           textAlign: element.align ?? 'left',
-          fontWeight: element.bold ? 700 : undefined,
+          fontWeight: element.bold || element.heading ? 700 : undefined,
           overflow: 'hidden',
           lineHeight: 1.35,
         }}
@@ -131,14 +143,18 @@ export function useCanvasScale() {
   return { containerRef, scale };
 }
 
-/** Resolves slide background to a style object (sanitized) */
-export function useSlideBackground(slide: Slide): React.CSSProperties {
-  const isUrl = slide.background?.startsWith('http');
-  const { url: cachedBg } = useCachedImage(isUrl ? slide.background : undefined);
+/**
+ * Resolves slide background to a style object (sanitized).
+ * Falls back to the theme background when the slide has no override.
+ */
+export function useSlideBackground(slide: Slide, theme: Theme): React.CSSProperties {
+  const effective = slide.background ?? theme.background;
+  const isUrl = effective?.startsWith('http');
+  const { url: cachedBg } = useCachedImage(isUrl ? effective : undefined);
 
   return useMemo(() => {
     if (isUrl) {
-      const safe = sanitizeUrl(cachedBg ?? slide.background);
+      const safe = sanitizeUrl(cachedBg ?? effective);
       if (safe) {
         return {
           backgroundImage: `url("${safe}")`,
@@ -148,34 +164,32 @@ export function useSlideBackground(slide: Slide): React.CSSProperties {
       }
       return {};
     }
-    const safeColor = sanitizeCssColor(slide.background);
+    const safeColor = sanitizeCssColor(effective);
     if (safeColor) {
       return { backgroundColor: safeColor };
     }
     return {};
-  }, [isUrl, cachedBg, slide.background]);
+  }, [isUrl, cachedBg, effective]);
 }
 
 /**
  * Read-only slide renderer. Renders the 1280x720 canvas scaled to fit
- * its container (maintains aspect ratio).
+ * its container (maintains aspect ratio), applying the presentation theme.
  */
-export function SlideRenderer({ slide, showNotes = false, className }: SlideRendererProps) {
+export function SlideRenderer({ slide, theme = DEFAULT_THEME, showNotes = false, className }: SlideRendererProps) {
   const { containerRef, scale } = useCanvasScale();
-  const backgroundStyle = useSlideBackground(slide);
+  const backgroundStyle = useSlideBackground(slide, theme);
 
   const elements = slide.elements ?? [];
-  const hasCustomBackground = Boolean(slide.background);
 
   return (
     <div
       ref={containerRef}
       className={cn(
         'relative w-full h-full overflow-hidden flex items-center justify-center',
-        !hasCustomBackground && 'bg-gradient-to-br from-slate-900 to-slate-800',
         className
       )}
-      style={hasCustomBackground ? backgroundStyle : undefined}
+      style={backgroundStyle}
     >
       <div
         style={{
@@ -188,7 +202,7 @@ export function SlideRenderer({ slide, showNotes = false, className }: SlideRend
         }}
       >
         {elements.map((element) => (
-          <ElementRenderer key={element.id} element={element} />
+          <ElementRenderer key={element.id} element={element} theme={theme} />
         ))}
       </div>
 

@@ -14,6 +14,9 @@ import {
   Loader2,
   Settings2,
   Copy,
+  Palette,
+  LayoutPanelLeft,
+  FileCode,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -22,6 +25,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -37,9 +47,12 @@ import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePresentation } from '@/hooks/usePresentations';
 import { usePublishPresentation } from '@/hooks/usePublishPresentation';
+import { markdownToSlides, slidesToMarkdown } from '@/lib/markdownSlides';
 import {
   type Slide,
   type SlideElement,
+  type Theme,
+  type ThemeFont,
   createEmptySlide,
   createTextElement,
   createImageElement,
@@ -49,6 +62,9 @@ import {
   formatDuration,
   calculateTotalDuration,
   getSlideLabel,
+  DEFAULT_THEME,
+  THEME_PRESETS,
+  FONT_LABELS,
 } from '@/lib/types';
 
 /** What the image picker dialog is targeting when it resolves */
@@ -96,13 +112,17 @@ export default function EditPresentation() {
   const [slides, setSlides] = useState<Slide[]>(
     createEmptyPresentationContent().slides
   );
+  const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
   const [selectedSlideIndex, setSelectedSlideIndex] = useState(0);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showTheme, setShowTheme] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [imageTarget, setImageTarget] = useState<ImageTarget | null>(null);
+  const [mode, setMode] = useState<'visual' | 'markdown'>('visual');
+  const [markdownBuffer, setMarkdownBuffer] = useState('');
 
   // Update state when existing data loads
   const isInitialized = useState(false);
@@ -112,6 +132,7 @@ export default function EditPresentation() {
     setCoverImage(existingPresentation.data.image ?? '');
     setTopics(existingPresentation.data.topics.join(', '));
     setSlides(existingPresentation.data.slides);
+    setTheme(existingPresentation.data.theme);
     isInitialized[1](true);
   }
 
@@ -248,6 +269,28 @@ export default function EditPresentation() {
     setImageTarget(null);
   }, [imageTarget, addElement, updateSelectedElement]);
 
+  // ----- Mode switching (Visual <-> Markdown) -----
+
+  const enterMarkdownMode = useCallback(() => {
+    setMarkdownBuffer(slidesToMarkdown(slides));
+    setSelectedElementId(null);
+    setMode('markdown');
+  }, [slides]);
+
+  /** Parse the markdown buffer into slides; returns the new slides */
+  const commitMarkdown = useCallback((): Slide[] => {
+    const parsed = markdownToSlides(markdownBuffer);
+    const next = parsed.length > 0 ? parsed : createEmptyPresentationContent().slides;
+    setSlides(next);
+    setSelectedSlideIndex((i) => Math.min(i, next.length - 1));
+    return next;
+  }, [markdownBuffer]);
+
+  const enterVisualMode = useCallback(() => {
+    commitMarkdown();
+    setMode('visual');
+  }, [commitMarkdown]);
+
   // ----- Save -----
 
   const handleSave = useCallback(() => {
@@ -257,10 +300,14 @@ export default function EditPresentation() {
       return;
     }
 
+    // If editing in markdown mode, commit the buffer first
+    const finalSlides = mode === 'markdown' ? commitMarkdown() : slides;
+
     publish({
       identifier,
       title: title.trim(),
-      slides,
+      slides: finalSlides,
+      theme,
       image: coverImage || undefined,
       summary: summary.trim() || undefined,
       topics: topics.split(',').map(t => t.trim()).filter(Boolean),
@@ -282,7 +329,7 @@ export default function EditPresentation() {
         });
       },
     });
-  }, [title, identifier, slides, coverImage, summary, topics, publish, navigate, toast]);
+  }, [title, identifier, slides, theme, mode, commitMarkdown, coverImage, summary, topics, publish, navigate, toast]);
 
   if (!user) {
     return (
@@ -315,35 +362,63 @@ export default function EditPresentation() {
             </div>
           </div>
 
-          {/* Insert toolbar */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => addElement(createTextElement())}
-            >
-              <Type className="w-4 h-4 mr-1" />
-              Text
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setImageTarget({ kind: 'new' })}
-            >
-              <ImageIcon className="w-4 h-4 mr-1" />
-              Image
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => addElement(createShapeElement('rect'))}
-            >
-              <Square className="w-4 h-4 mr-1" />
-              Shape
-            </Button>
-          </div>
+          {/* Insert toolbar (visual mode only) */}
+          {mode === 'visual' ? (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => addElement(createTextElement())}
+              >
+                <Type className="w-4 h-4 mr-1" />
+                Text
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImageTarget({ kind: 'new' })}
+              >
+                <ImageIcon className="w-4 h-4 mr-1" />
+                Image
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => addElement(createShapeElement('rect'))}
+              >
+                <Square className="w-4 h-4 mr-1" />
+                Shape
+              </Button>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              Markdown mode — slides separated by <code className="px-1 bg-muted rounded">---</code>
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
+            {/* Visual / Markdown toggle */}
+            <div className="flex rounded-md border overflow-hidden">
+              <button
+                className={`px-2 py-1.5 text-xs flex items-center gap-1 ${mode === 'visual' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                onClick={() => mode !== 'visual' && enterVisualMode()}
+              >
+                <LayoutPanelLeft className="w-3.5 h-3.5" />
+                Visual
+              </button>
+              <button
+                className={`px-2 py-1.5 text-xs flex items-center gap-1 ${mode === 'markdown' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                onClick={() => mode !== 'markdown' && enterMarkdownMode()}
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                Markdown
+              </button>
+            </div>
+
+            <Button variant="outline" size="sm" onClick={() => setShowTheme(true)}>
+              <Palette className="w-4 h-4 mr-2" />
+              Theme
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowDetails(true)}>
               <Settings2 className="w-4 h-4 mr-2" />
               Details
@@ -360,6 +435,41 @@ export default function EditPresentation() {
         </div>
       </header>
 
+      {mode === 'markdown' ? (
+        <div className="flex flex-1 min-h-0">
+          {/* Markdown editor */}
+          <div className="flex-1 min-w-0 flex flex-col border-r">
+            <Textarea
+              value={markdownBuffer}
+              onChange={(e) => setMarkdownBuffer(e.target.value)}
+              className="flex-1 resize-none rounded-none border-0 font-mono text-sm p-6 focus-visible:ring-0"
+              placeholder={`# My Title\n\nA subtitle or intro\n\n---\n\n## Second slide\n\n- Point one\n- Point two\n\n![](https://example.com/image.jpg)\n\nNote: speaker notes go here\n\n<!-- duration: 90 -->`}
+              spellCheck={false}
+            />
+            <div className="border-t px-4 py-2 text-xs text-muted-foreground bg-muted/30">
+              Separate slides with <code className="px-1 bg-muted rounded">---</code> •{' '}
+              <code className="px-1 bg-muted rounded"># Heading</code> •{' '}
+              <code className="px-1 bg-muted rounded">![](url)</code> for images •{' '}
+              <code className="px-1 bg-muted rounded">Note:</code> for speaker notes •{' '}
+              <code className="px-1 bg-muted rounded">{'<!-- duration: 90 -->'}</code>
+            </div>
+          </div>
+
+          {/* Live preview */}
+          <div className="w-[380px] flex-shrink-0 bg-muted/50 overflow-y-auto p-4 space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Preview ({markdownToSlides(markdownBuffer).length} slides)
+            </p>
+            {markdownToSlides(markdownBuffer).map((slide, i) => (
+              <div key={i} className="rounded-lg overflow-hidden ring-1 ring-border">
+                <div className="aspect-video bg-slate-900">
+                  <SlideRenderer slide={slide} theme={theme} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div className="flex flex-1 min-h-0">
         {/* Slide List Sidebar */}
         <aside className="w-52 border-r bg-muted/30 overflow-y-auto flex-shrink-0">
@@ -400,7 +510,7 @@ export default function EditPresentation() {
               >
                 {/* Mini slide preview */}
                 <div className="aspect-video bg-slate-900 pointer-events-none">
-                  <SlideRenderer slide={slide} />
+                  <SlideRenderer slide={slide} theme={theme} />
                 </div>
 
                 <div className="px-2 py-1 bg-card flex items-center justify-between">
@@ -447,6 +557,7 @@ export default function EditPresentation() {
               {currentSlide && (
                 <SlideCanvas
                   slide={currentSlide}
+                  theme={theme}
                   selectedId={selectedElementId}
                   onSelect={setSelectedElementId}
                   onChange={updateElements}
@@ -531,6 +642,7 @@ export default function EditPresentation() {
           )}
         </aside>
       </div>
+      )}
 
       {/* Presentation Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
@@ -643,6 +755,126 @@ export default function EditPresentation() {
         onOpenChange={(open) => !open && setImageTarget(null)}
         onPick={handleImagePicked}
       />
+
+      {/* Theme Dialog */}
+      <Dialog open={showTheme} onOpenChange={setShowTheme}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Presentation Theme</DialogTitle>
+            <DialogDescription>
+              Applies to every slide. Individual slides and text elements can still
+              override these defaults.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            {/* Presets */}
+            <div className="space-y-2">
+              <Label className="text-xs">Presets</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {THEME_PRESETS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    onClick={() => setTheme(preset.theme)}
+                    className="rounded-lg overflow-hidden ring-1 ring-border hover:ring-primary transition-all text-left"
+                  >
+                    <div
+                      className="aspect-video flex items-center justify-center p-2"
+                      style={{ backgroundColor: preset.theme.background }}
+                    >
+                      <span
+                        className="text-sm font-bold truncate"
+                        style={{ color: preset.theme.headingColor, fontFamily: FONT_LABELS[preset.theme.font] }}
+                      >
+                        Aa
+                      </span>
+                    </div>
+                    <div className="px-2 py-1 text-xs bg-card">{preset.name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Custom controls */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs">Background</Label>
+                <div className="flex gap-1">
+                  <input
+                    type="color"
+                    className="h-8 w-9 rounded border cursor-pointer bg-transparent"
+                    value={theme.background.startsWith('#') ? theme.background : '#0f172a'}
+                    onChange={(e) => setTheme({ ...theme, background: e.target.value })}
+                  />
+                  <Input
+                    className="h-8 flex-1 text-xs"
+                    value={theme.background}
+                    onChange={(e) => setTheme({ ...theme, background: e.target.value })}
+                    placeholder="#0f172a or https://..."
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Font</Label>
+                <Select
+                  value={theme.font}
+                  onValueChange={(font: ThemeFont) => setTheme({ ...theme, font })}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(FONT_LABELS) as ThemeFont[]).map((f) => (
+                      <SelectItem key={f} value={f}>{FONT_LABELS[f]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Body text color</Label>
+                <div className="flex gap-1">
+                  <input
+                    type="color"
+                    className="h-8 w-9 rounded border cursor-pointer bg-transparent"
+                    value={theme.textColor}
+                    onChange={(e) => setTheme({ ...theme, textColor: e.target.value })}
+                  />
+                  <Input
+                    className="h-8 flex-1 text-xs font-mono"
+                    value={theme.textColor}
+                    onChange={(e) => setTheme({ ...theme, textColor: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Heading color</Label>
+                <div className="flex gap-1">
+                  <input
+                    type="color"
+                    className="h-8 w-9 rounded border cursor-pointer bg-transparent"
+                    value={theme.headingColor}
+                    onChange={(e) => setTheme({ ...theme, headingColor: e.target.value })}
+                  />
+                  <Input
+                    className="h-8 flex-1 text-xs font-mono"
+                    value={theme.headingColor}
+                    onChange={(e) => setTheme({ ...theme, headingColor: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button className="w-full" onClick={() => setShowTheme(false)}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -33,12 +33,20 @@ display while preserving the aspect ratio.
 ```typescript
 interface PresentationContent {
   slides: Slide[];
+  theme?: Theme;               // Presentation-wide theme (optional)
+}
+
+interface Theme {
+  background: string;          // Default slide background: hex or image URL
+  textColor: string;           // Default body text color (hex)
+  headingColor: string;        // Default heading text color (hex)
+  font: 'sans' | 'serif' | 'mono' | 'display';
 }
 
 interface Slide {
   elements?: SlideElement[];   // Positioned canvas elements
   duration: number;            // Planned duration in seconds
-  background?: string;         // Background color (hex) or image URL
+  background?: string;         // Overrides theme background (hex or image URL)
   notes?: string;              // Speaker notes (not shown to audience)
 }
 
@@ -58,9 +66,11 @@ interface SlideElement {
   // type: 'text'
   content?: string;            // Markdown (headings, lists, bold, italic)
   fontSize?: number;           // In canvas units
-  color?: string;              // Hex color
+  color?: string;              // Hex color — overrides theme text/heading color
+  fontFamily?: 'sans' | 'serif' | 'mono' | 'display'; // Overrides theme font
   align?: 'left' | 'center' | 'right';
   bold?: boolean;
+  heading?: boolean;           // Use theme heading color by default
 
   // type: 'image'
   src?: string;                // Image URL (Blossom or external)
@@ -72,6 +82,11 @@ interface SlideElement {
   radius?: number;             // Corner radius for rects
 }
 ```
+
+**Theme inheritance:** Each slide inherits the presentation `theme`. A slide's
+`background` overrides `theme.background`; a text element's `color` overrides the
+theme text/heading color, and its `fontFamily` overrides `theme.font`. Missing
+theme defaults to a built-in dark theme.
 
 ### Legacy v1 Slides
 

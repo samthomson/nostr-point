@@ -6,11 +6,13 @@ import {
   CANVAS_HEIGHT,
   type Slide,
   type SlideElement,
+  type Theme,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface SlideCanvasProps {
   slide: Slide;
+  theme: Theme;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onChange: (elements: SlideElement[]) => void;
@@ -51,9 +53,9 @@ const MIN_SIZE = 24;
  * Editable slide canvas: click to select, drag to move,
  * resize via 8 handles, double-click text to edit.
  */
-export function SlideCanvas({ slide, selectedId, onSelect, onChange, onEditText }: SlideCanvasProps) {
+export function SlideCanvas({ slide, theme, selectedId, onSelect, onChange, onEditText }: SlideCanvasProps) {
   const { containerRef, scale } = useCanvasScale();
-  const backgroundStyle = useSlideBackground(slide);
+  const backgroundStyle = useSlideBackground(slide, theme);
   const dragRef = useRef<DragMode | null>(null);
   const elementsRef = useRef<SlideElement[]>(slide.elements ?? []);
   const [isDragging, setIsDragging] = useState(false);
@@ -64,7 +66,6 @@ export function SlideCanvas({ slide, selectedId, onSelect, onChange, onEditText 
   }, [slide.elements]);
 
   const elements = slide.elements ?? [];
-  const hasCustomBackground = Boolean(slide.background);
   const selected = elements.find(el => el.id === selectedId);
 
   const updateElement = useCallback((id: string, updates: Partial<SlideElement>) => {
@@ -148,9 +149,8 @@ export function SlideCanvas({ slide, selectedId, onSelect, onChange, onEditText 
       ref={containerRef}
       className={cn(
         'relative w-full h-full overflow-hidden flex items-center justify-center select-none',
-        !hasCustomBackground && 'bg-gradient-to-br from-slate-900 to-slate-800',
       )}
-      style={hasCustomBackground ? backgroundStyle : undefined}
+      style={backgroundStyle}
       onPointerDown={() => onSelect(null)}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -168,7 +168,7 @@ export function SlideCanvas({ slide, selectedId, onSelect, onChange, onEditText 
         {/* Elements with interaction wrappers */}
         {elements.map((element) => (
           <div key={element.id}>
-            <ElementRenderer element={element} />
+            <ElementRenderer element={element} theme={theme} />
             {/* Interaction overlay */}
             <div
               style={{

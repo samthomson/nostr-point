@@ -188,7 +188,7 @@ export default function PresenterMode() {
         {/* Current slide (large) */}
         <div className="flex-1 p-4">
           <div className="h-full rounded-xl overflow-hidden shadow-2xl">
-            <SlideRenderer slide={slide} showNotes />
+            <SlideRenderer slide={slide} theme={presentation.theme} showNotes />
           </div>
         </div>
         
@@ -199,7 +199,7 @@ export default function PresenterMode() {
             <p className="text-sm text-slate-400 font-medium">Next Slide</p>
             <div className="aspect-video rounded-lg overflow-hidden border border-slate-700">
               {nextSlide ? (
-                <SlideRenderer slide={nextSlide} className="scale-100" />
+                <SlideRenderer slide={nextSlide} theme={presentation.theme} className="scale-100" />
               ) : (
                 <div className="w-full h-full bg-slate-800 flex items-center justify-center">
                   <span className="text-slate-500">End of presentation</span>

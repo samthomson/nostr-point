@@ -39,12 +39,16 @@ export interface SlideElement {
   content?: string;
   /** Font size in canvas units */
   fontSize?: number;
-  /** Text color (hex) */
+  /** Text color (hex) — overrides the theme text color */
   color?: string;
+  /** Font family — overrides the theme font */
+  fontFamily?: ThemeFont;
   /** Text alignment */
   align?: 'left' | 'center' | 'right';
   /** Bold text */
   bold?: boolean;
+  /** Treat this text as a heading (uses theme heading color by default) */
+  heading?: boolean;
 
   // Image element properties
   /** Image URL (image elements) */
@@ -61,13 +65,65 @@ export interface SlideElement {
   radius?: number;
 }
 
+/** Available font family choices for themes */
+export type ThemeFont = 'sans' | 'serif' | 'mono' | 'display';
+
+/** CSS font-family stacks for each theme font */
+export const FONT_STACKS: Record<ThemeFont, string> = {
+  sans: "'Inter', system-ui, -apple-system, sans-serif",
+  serif: "'Playfair Display', Georgia, 'Times New Roman', serif",
+  mono: "'JetBrains Mono', ui-monospace, 'Courier New', monospace",
+  display: "'Space Grotesk', system-ui, sans-serif",
+};
+
+export const FONT_LABELS: Record<ThemeFont, string> = {
+  sans: 'Sans (Inter)',
+  serif: 'Serif (Playfair)',
+  mono: 'Mono (JetBrains)',
+  display: 'Display (Space Grotesk)',
+};
+
+/**
+ * Presentation-wide theme. Applied to every slide; individual slides
+ * (via `slide.background`) and elements (via element `color`/`fontFamily`)
+ * can override these defaults.
+ */
+export interface Theme {
+  /** Default slide background: hex color or image URL */
+  background: string;
+  /** Default body text color (hex) */
+  textColor: string;
+  /** Default heading text color (hex) */
+  headingColor: string;
+  /** Default font family */
+  font: ThemeFont;
+}
+
+/** The default theme for new presentations */
+export const DEFAULT_THEME: Theme = {
+  background: '#0f172a',
+  textColor: '#e2e8f0',
+  headingColor: '#ffffff',
+  font: 'sans',
+};
+
+/** Built-in theme presets users can pick from */
+export const THEME_PRESETS: { name: string; theme: Theme }[] = [
+  { name: 'Midnight', theme: { background: '#0f172a', textColor: '#e2e8f0', headingColor: '#ffffff', font: 'sans' } },
+  { name: 'Paper', theme: { background: '#faf9f6', textColor: '#1f2937', headingColor: '#111827', font: 'serif' } },
+  { name: 'Terminal', theme: { background: '#0a0a0a', textColor: '#4ade80', headingColor: '#86efac', font: 'mono' } },
+  { name: 'Ocean', theme: { background: '#0c4a6e', textColor: '#e0f2fe', headingColor: '#ffffff', font: 'display' } },
+  { name: 'Sunset', theme: { background: '#431407', textColor: '#fed7aa', headingColor: '#ffedd5', font: 'display' } },
+  { name: 'Mono Light', theme: { background: '#ffffff', textColor: '#27272a', headingColor: '#000000', font: 'sans' } },
+];
+
 /** A single slide in a presentation */
 export interface Slide {
   /** Canvas elements (v2 format) */
   elements?: SlideElement[];
   /** Planned duration in seconds */
   duration: number;
-  /** Background color (hex) or image URL */
+  /** Background color (hex) or image URL — overrides the theme background */
   background?: string;
   /** Speaker notes (not shown to audience) */
   notes?: string;
@@ -86,6 +142,8 @@ export interface Slide {
 /** Content structure stored in the event's content field */
 export interface PresentationContent {
   slides: Slide[];
+  /** Presentation-wide theme (optional; defaults applied if missing) */
+  theme?: Theme;
 }
 
 /** Parsed presentation with metadata from tags */
@@ -106,6 +164,8 @@ export interface Presentation {
   topics: string[];
   /** Parsed slides */
   slides: Slide[];
+  /** Presentation-wide theme */
+  theme: Theme;
   /** Author pubkey */
   pubkey: string;
   /** Created/updated timestamp */
@@ -291,6 +351,7 @@ export function parsePresentation(event: NostrEvent): Presentation | null {
       duration,
       topics: getTags('t'),
       slides: content.slides.map(migrateSlide),
+      theme: { ...DEFAULT_THEME, ...content.theme },
       pubkey: event.pubkey,
       createdAt: event.created_at,
     };

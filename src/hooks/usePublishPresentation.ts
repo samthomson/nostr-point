@@ -4,8 +4,8 @@ import { useNostrPublish } from './useNostrPublish';
 import { 
   PRESENTATION_KIND, 
   type Slide, 
+  type Theme,
   type PresentationContent,
-  type Presentation,
   calculateTotalDuration,
   formatDuration,
   parsePresentation,
@@ -18,6 +18,8 @@ interface PublishPresentationParams {
   title: string;
   /** Slides array */
   slides: Slide[];
+  /** Presentation-wide theme */
+  theme: Theme;
   /** Cover image URL */
   image?: string;
   /** Brief description */
@@ -32,9 +34,9 @@ export function usePublishPresentation() {
   
   return useMutation({
     mutationFn: async (params: PublishPresentationParams) => {
-      const { identifier, title, slides, image, summary, topics = [] } = params;
+      const { identifier, title, slides, theme, image, summary, topics = [] } = params;
       
-      const content: PresentationContent = { slides };
+      const content: PresentationContent = { slides, theme };
       const totalDuration = calculateTotalDuration(slides);
       
       const tags: string[][] = [
