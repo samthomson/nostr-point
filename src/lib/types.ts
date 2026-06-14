@@ -1,7 +1,7 @@
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /** Kind number for slide presentations */
-export const PRESENTATION_KIND = 36387;
+export const PRESENTATION_KIND = 31361;
 
 /** Virtual canvas dimensions - all element coordinates are in this space */
 export const CANVAS_WIDTH = 1280;

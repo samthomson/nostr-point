@@ -2,7 +2,7 @@
 
 This document describes the custom Nostr event kinds used by the Nostr Point application.
 
-## Kind 36387: Slide Presentation
+## Kind 31361: Slide Presentation
 
 An addressable event representing a slide presentation with timed slides composed of freely-positioned canvas elements.
 
@@ -10,7 +10,7 @@ An addressable event representing a slide presentation with timed slides compose
 
 ```json
 {
-  "kind": 36387,
+  "kind": 31361,
   "content": "<JSON string containing slides array>",
   "tags": [
     ["d", "<unique-presentation-slug>"],
@@ -129,7 +129,7 @@ to the layout. Nostr Point performs this migration automatically when parsing.
 
 ```json
 {
-  "kind": 36387,
+  "kind": 31361,
   "pubkey": "...",
   "created_at": 1780925428,
   "content": "{\"slides\":[{\"elements\":[{\"id\":\"a1b2c3d4\",\"type\":\"text\",\"x\":80,\"y\":250,\"width\":1120,\"height\":140,\"content\":\"# Introduction to Nostr\",\"fontSize\":72,\"align\":\"center\"},{\"id\":\"e5f6g7h8\",\"type\":\"image\",\"x\":340,\"y\":420,\"width\":600,\"height\":240,\"src\":\"https://blossom.example/abc.jpg\",\"fit\":\"contain\"}],\"duration\":60,\"notes\":\"Welcome everyone\"}]}",
@@ -181,20 +181,20 @@ Clients implementing this kind SHOULD support offline caching:
 ```typescript
 // Get a specific presentation by author and slug
 nostr.query([{
-  kinds: [36387],
+  kinds: [31361],
   authors: [pubkey],
   '#d': [slug]
 }]);
 
 // Get all presentations by an author
 nostr.query([{
-  kinds: [36387],
+  kinds: [31361],
   authors: [pubkey]
 }]);
 
 // Get presentations by topic
 nostr.query([{
-  kinds: [36387],
+  kinds: [31361],
   '#t': ['nostr']
 }]);
 ```
@@ -204,7 +204,7 @@ nostr.query([{
 Presentations can be referenced using NIP-19 `naddr` encoding:
 
 ```
-naddr1<...kind=36387&pubkey=...&d=k3x9m2qp7w1a...>
+naddr1<...kind=31361&pubkey=...&d=k3x9m2qp7w1a...>
 ```
 
 This allows sharing direct links to presentations that work across clients.

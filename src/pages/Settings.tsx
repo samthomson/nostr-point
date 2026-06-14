@@ -98,7 +98,7 @@ export default function Settings() {
               Create slide decks, share them with anyone, and present with confidence — even offline.
             </p>
             <p className="pt-2">
-              Uses <strong>Kind 36387</strong> for addressable slide presentations.
+              Uses <strong>Kind 31361</strong> for addressable slide presentations.
             </p>
             <p className="pt-4">
               Vibed with{' '}
