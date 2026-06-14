@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -43,11 +43,13 @@ import { SlideCanvas } from '@/components/SlideCanvas';
 import { SlideRenderer } from '@/components/SlideRenderer';
 import { ElementProperties } from '@/components/ElementProperties';
 import { ImagePickerDialog } from '@/components/ImagePickerDialog';
+import { PresentationStatsBar } from '@/components/PresentationStatsBar';
 import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePresentation } from '@/hooks/usePresentations';
 import { usePublishPresentation } from '@/hooks/usePublishPresentation';
 import { markdownToSlides, slidesToMarkdown } from '@/lib/markdownSlides';
+import { computePresentationStats } from '@/lib/presentationStats';
 import {
   type Slide,
   type SlideElement,
@@ -146,6 +148,19 @@ export default function EditPresentation() {
   const totalDuration = calculateTotalDuration(slides);
   const selectedElement = currentSlide?.elements?.find(el => el.id === selectedElementId) ?? null;
   const editingTextElement = currentSlide?.elements?.find(el => el.id === editingTextId) ?? null;
+
+  // Live stats — in markdown mode reflect the buffer, otherwise the slides state
+  const stats = useMemo(() => {
+    const effectiveSlides = mode === 'markdown' ? markdownToSlides(markdownBuffer) : slides;
+    return computePresentationStats({
+      slides: effectiveSlides,
+      theme,
+      title,
+      summary,
+      image: coverImage || undefined,
+      topics: topics.split(',').map(t => t.trim()).filter(Boolean),
+    });
+  }, [mode, markdownBuffer, slides, theme, title, summary, coverImage, topics]);
 
   // ----- Slide operations -----
 
@@ -643,6 +658,9 @@ export default function EditPresentation() {
         </aside>
       </div>
       )}
+
+      {/* Bottom stats bar */}
+      <PresentationStatsBar stats={stats} />
 
       {/* Presentation Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
