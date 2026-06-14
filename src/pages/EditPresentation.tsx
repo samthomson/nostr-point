@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useSeoMeta } from '@unhead/react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import {
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
   Palette,
   LayoutPanelLeft,
   FileCode,
+  Settings,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,7 @@ import { SlideRenderer } from '@/components/SlideRenderer';
 import { ElementProperties } from '@/components/ElementProperties';
 import { ImagePickerDialog } from '@/components/ImagePickerDialog';
 import { PresentationStatsBar } from '@/components/PresentationStatsBar';
+import { LoginArea } from '@/components/auth/LoginArea';
 import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePresentation } from '@/hooks/usePresentations';
@@ -359,96 +361,99 @@ export default function EditPresentation() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
+    <div className="h-screen overflow-hidden bg-background flex flex-col">
+      {/* Top bar: navigation + presentation-level actions */}
       <header className="border-b bg-card flex-shrink-0 z-10">
-        <div className="px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <div className="px-4 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div>
-              <h1 className="font-semibold text-sm">
+            <div className="min-w-0">
+              <h1 className="font-semibold text-sm truncate">
                 {title || (isEditing ? 'Edit Presentation' : 'New Presentation')}
               </h1>
               <p className="text-xs text-muted-foreground">
-                {slides.length} slides • {formatDuration(totalDuration)}
+                {slides.length} {slides.length === 1 ? 'slide' : 'slides'} • {formatDuration(totalDuration)}
               </p>
             </div>
           </div>
 
-          {/* Insert toolbar (visual mode only) */}
-          {mode === 'visual' ? (
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => addElement(createTextElement())}
-              >
-                <Type className="w-4 h-4 mr-1" />
-                Text
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setImageTarget({ kind: 'new' })}
-              >
-                <ImageIcon className="w-4 h-4 mr-1" />
-                Image
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => addElement(createShapeElement('rect'))}
-              >
-                <Square className="w-4 h-4 mr-1" />
-                Shape
-              </Button>
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground">
-              Markdown mode — slides separated by <code className="px-1 bg-muted rounded">---</code>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2">
-            {/* Visual / Markdown toggle */}
-            <div className="flex rounded-md border overflow-hidden">
-              <button
-                className={`px-2 py-1.5 text-xs flex items-center gap-1 ${mode === 'visual' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-                onClick={() => mode !== 'visual' && enterVisualMode()}
-              >
-                <LayoutPanelLeft className="w-3.5 h-3.5" />
-                Visual
-              </button>
-              <button
-                className={`px-2 py-1.5 text-xs flex items-center gap-1 ${mode === 'markdown' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-                onClick={() => mode !== 'markdown' && enterMarkdownMode()}
-              >
-                <FileCode className="w-3.5 h-3.5" />
-                Markdown
-              </button>
-            </div>
-
-            <Button variant="outline" size="sm" onClick={() => setShowTheme(true)}>
-              <Palette className="w-4 h-4 mr-2" />
-              Theme
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => setShowTheme(true)}>
+              <Palette className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Theme</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowDetails(true)}>
-              <Settings2 className="w-4 h-4 mr-2" />
-              Details
+            <Button variant="ghost" size="sm" onClick={() => setShowDetails(true)}>
+              <Settings2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Details</span>
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={isPublishing}>
+            <div className="w-px h-6 bg-border mx-1" />
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/settings" aria-label="Settings">
+                <Settings className="w-5 h-5" />
+              </Link>
+            </Button>
+            <LoginArea className="max-w-40" />
+            <Button onClick={handleSave} disabled={isPublishing}>
               {isPublishing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
               ) : (
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4 sm:mr-2" />
               )}
-              Save
+              <span className="hidden sm:inline">Save</span>
             </Button>
           </div>
         </div>
       </header>
+
+      {/* Tool strip: mode toggle + insert tools */}
+      <div className="border-b bg-card flex-shrink-0 z-10">
+        <div className="px-4 h-12 flex items-center gap-4">
+          {/* Visual / Markdown toggle */}
+          <div className="flex rounded-md border overflow-hidden shrink-0">
+            <button
+              className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors ${mode === 'visual' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              onClick={() => mode !== 'visual' && enterVisualMode()}
+            >
+              <LayoutPanelLeft className="w-3.5 h-3.5" />
+              Visual
+            </button>
+            <button
+              className={`px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors ${mode === 'markdown' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              onClick={() => mode !== 'markdown' && enterMarkdownMode()}
+            >
+              <FileCode className="w-3.5 h-3.5" />
+              Markdown
+            </button>
+          </div>
+
+          {mode === 'visual' ? (
+            <>
+              <div className="w-px h-6 bg-border" />
+              <span className="text-xs text-muted-foreground hidden md:inline">Insert:</span>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={() => addElement(createTextElement())}>
+                  <Type className="w-4 h-4 mr-1.5" />
+                  Text
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setImageTarget({ kind: 'new' })}>
+                  <ImageIcon className="w-4 h-4 mr-1.5" />
+                  Image
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => addElement(createShapeElement('rect'))}>
+                  <Square className="w-4 h-4 mr-1.5" />
+                  Shape
+                </Button>
+              </div>
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Slides separated by <code className="px-1 bg-muted rounded">---</code>
+            </span>
+          )}
+        </div>
+      </div>
 
       {mode === 'markdown' ? (
         <div className="flex flex-1 min-h-0">
