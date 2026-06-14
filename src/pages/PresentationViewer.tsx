@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SlideRenderer } from '@/components/SlideRenderer';
+import { AppHeader } from '@/components/AppHeader';
 import { usePresentation } from '@/hooks/usePresentations';
 import { useOfflinePresentation, useOfflinePresentationData } from '@/hooks/useOfflinePresentation';
 import { useAuthor } from '@/hooks/useAuthor';
@@ -146,70 +147,59 @@ export default function PresentationViewer() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b bg-card flex-shrink-0">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/">
-                <Home className="w-5 h-5" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="font-semibold">{presentation.title}</h1>
-              <p className="text-sm text-muted-foreground">
-                by {authorName} • {formatDuration(presentation.duration)}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
+      <AppHeader
+        subtitle={`${presentation.title} · by ${authorName} · ${formatDuration(presentation.duration)}`}
+        actions={
+          <>
             {status?.fullyOffline ? (
               <Badge variant="secondary" className="gap-1">
                 <CheckCircle className="w-3 h-3" />
-                Offline ready
+                <span className="hidden sm:inline">Offline ready</span>
               </Badge>
             ) : (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => cacheForOffline()}
                 disabled={isCaching}
               >
                 {isCaching ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {cacheProgress ? `${cacheProgress.cached}/${cacheProgress.total}` : 'Caching...'}
+                    <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                    <span className="hidden sm:inline">
+                      {cacheProgress ? `${cacheProgress.cached}/${cacheProgress.total}` : 'Caching...'}
+                    </span>
                   </>
                 ) : (
                   <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Save offline
+                    <Download className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Save offline</span>
                   </>
                 )}
               </Button>
             )}
-            
+
             <Button variant="outline" size="sm" onClick={enterFullscreen}>
-              <Maximize className="w-4 h-4 mr-2" />
-              Fullscreen
+              <Maximize className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Fullscreen</span>
             </Button>
-            
+
             {isAuthor && (
               <Button variant="outline" size="sm" asChild>
                 <Link to={`/${nip19Param}/edit`}>
-                  <Pencil className="w-4 h-4 mr-2" />
-                  Edit
+                  <Pencil className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Edit</span>
                 </Link>
               </Button>
             )}
-            
-            <Button onClick={startPresenterMode}>
-              <Monitor className="w-4 h-4 mr-2" />
-              Present
+
+            <Button size="sm" onClick={startPresenterMode}>
+              <Monitor className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Present</span>
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
       
       {/* Slide Area */}
       <main className="flex-1 flex flex-col p-4 md:p-8 bg-muted/30">

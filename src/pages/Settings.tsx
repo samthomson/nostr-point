@@ -1,12 +1,11 @@
 import { useSeoMeta } from '@unhead/react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Wifi, Layers, ImageIcon } from 'lucide-react';
+import { Wifi, ImageIcon } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RelayListManager } from '@/components/RelayListManager';
 import { BlossomServerManager } from '@/components/BlossomServerManager';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { AppHeader } from '@/components/AppHeader';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 export default function Settings() {
@@ -19,23 +18,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </Button>
-            <div className="flex items-center gap-2">
-              <Layers className="w-6 h-6 text-primary" />
-              <span className="text-lg font-semibold">Settings</span>
-            </div>
-          </div>
-          
-          <LoginArea className="max-w-48" />
-        </div>
-      </header>
+      <AppHeader subtitle="Settings" hideSettings />
 
       <main className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
         {/* Account Section */}

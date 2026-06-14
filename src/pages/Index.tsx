@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { Link } from 'react-router-dom';
-import { Plus, Layers, WifiOff, Cloud, Settings } from 'lucide-react';
+import { Plus, Layers, WifiOff, Cloud } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { AppHeader } from '@/components/AppHeader';
 import { PresentationCard, PresentationCardSkeleton } from '@/components/PresentationCard';
 import { usePresentations } from '@/hooks/usePresentations';
 import { useCachedPresentations, useIsOffline } from '@/hooks/useOfflinePresentation';
@@ -68,40 +69,19 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Layers className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold">Nostr Point</span>
-          </Link>
-          
-          <div className="flex items-center gap-4">
-            {isOffline && (
-              <span className="flex items-center gap-1 text-sm text-orange-600">
-                <WifiOff className="w-4 h-4" />
-                Offline
-              </span>
-            )}
-            
-            {user && (
-              <Button asChild>
-                <Link to="/new">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Presentation
-                </Link>
-              </Button>
-            )}
-            
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/settings">
-                <Settings className="w-5 h-5" />
+      <AppHeader
+        actions={
+          user && (
+            <Button asChild>
+              <Link to="/new">
+                <Plus className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">New Presentation</span>
+                <span className="sm:hidden">New</span>
               </Link>
             </Button>
-            
-            <LoginArea className="max-w-48" />
-          </div>
-        </div>
-      </header>
+          )
+        }
+      />
       
       {/* Hero */}
       <section className="bg-gradient-to-b from-primary/5 to-background py-16">
