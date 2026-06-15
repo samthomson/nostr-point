@@ -53,6 +53,7 @@ import { usePresentation } from '@/hooks/usePresentations';
 import { usePublishPresentation } from '@/hooks/usePublishPresentation';
 import { markdownToSlides, slidesToMarkdown } from '@/lib/markdownSlides';
 import { computePresentationStats } from '@/lib/presentationStats';
+import { cn } from '@/lib/utils';
 import {
   type Slide,
   type SlideElement,
@@ -127,6 +128,9 @@ export default function EditPresentation() {
   const [imageTarget, setImageTarget] = useState<ImageTarget | null>(null);
   const [mode, setMode] = useState<'visual' | 'markdown'>('visual');
   const [markdownBuffer, setMarkdownBuffer] = useState('');
+  // Snapshot of the saveable content at last save (or initial load), used to
+  // detect unsaved changes. null = treat any edit as dirty (new, unsaved deck).
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
   // Update state when existing data loads
   const isInitialized = useState(false);
@@ -137,6 +141,15 @@ export default function EditPresentation() {
     setTopics(existingPresentation.data.topics.join(', '));
     setSlides(existingPresentation.data.slides);
     setTheme(existingPresentation.data.theme);
+    // Record the loaded state as the saved baseline
+    setSavedSnapshot(JSON.stringify({
+      title: existingPresentation.data.title,
+      summary: existingPresentation.data.summary ?? '',
+      coverImage: existingPresentation.data.image ?? '',
+      topics: existingPresentation.data.topics.join(', '),
+      slides: existingPresentation.data.slides,
+      theme: existingPresentation.data.theme,
+    }));
     isInitialized[1](true);
   }
 
@@ -149,6 +162,15 @@ export default function EditPresentation() {
   const currentSlide = slides[selectedSlideIndex];
   const selectedElement = currentSlide?.elements?.find(el => el.id === selectedElementId) ?? null;
   const editingTextElement = currentSlide?.elements?.find(el => el.id === editingTextId) ?? null;
+
+  // Detect unsaved changes by comparing current saveable content to the snapshot.
+  // In markdown mode, the buffer hasn't been committed to slides yet, so any
+  // markdown editing counts as dirty.
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ title, summary, coverImage, topics, slides, theme }),
+    [title, summary, coverImage, topics, slides, theme]
+  );
+  const isDirty = mode === 'markdown' || savedSnapshot === null || currentSnapshot !== savedSnapshot;
 
   // Live stats — in markdown mode reflect the buffer, otherwise the slides state
   const stats = useMemo(() => {
@@ -407,13 +429,21 @@ export default function EditPresentation() {
               <Settings2 className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Details</span>
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={isPublishing}>
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={isPublishing || !isDirty}
+              variant={isDirty ? 'default' : 'outline'}
+              className={cn(isDirty && 'shadow-sm ring-2 ring-primary/30')}
+            >
               {isPublishing ? (
                 <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
               ) : (
                 <Save className="w-4 h-4 sm:mr-2" />
               )}
-              <span className="hidden sm:inline">Save</span>
+              <span className="hidden sm:inline">
+                {isPublishing ? 'Saving…' : isDirty ? 'Save' : 'Saved'}
+              </span>
             </Button>
           </div>
         </div>
@@ -583,8 +613,8 @@ export default function EditPresentation() {
         </aside>
 
         {/* Canvas Area */}
-        <main className="flex-1 min-w-0 flex flex-col bg-muted/50 p-6">
-          <div className="flex-1 min-h-0 flex items-center justify-center">
+        <main className="flex-1 min-w-0 flex flex-col bg-muted/50">
+          <div className="flex-1 min-h-0 flex items-center justify-center p-6">
             <div className="w-full h-full max-w-5xl rounded-lg overflow-hidden shadow-xl ring-1 ring-border">
               {currentSlide && (
                 <SlideCanvas
@@ -598,45 +628,31 @@ export default function EditPresentation() {
               )}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Click to select • Drag to move • Double-click text to edit • Use the toolbar to add elements
-          </p>
-        </main>
 
-        {/* Properties Panel */}
-        <aside className="w-72 border-l bg-card overflow-y-auto flex-shrink-0 p-4">
-          {selectedElement ? (
-            <ElementProperties
-              element={selectedElement}
-              onChange={updateSelectedElement}
-              onDelete={deleteSelectedElement}
-              onLayerChange={changeElementLayer}
-              onPickImage={() => setImageTarget({ kind: 'replace', elementId: selectedElement.id })}
-            />
-          ) : (
-            <div className="space-y-4">
-              <span className="text-sm font-semibold">Slide {selectedSlideIndex + 1}</span>
-              <Separator />
-
+          {/* Compact slide settings strip below the canvas */}
+          <div className="border-t bg-card flex-shrink-0 px-6 py-3">
+            <div className="flex items-end gap-4 flex-wrap">
               <div className="space-y-1">
-                <Label className="text-xs">Duration (seconds)</Label>
-                <Input
-                  type="number"
-                  className="h-8"
-                  min={5}
-                  max={600}
-                  value={currentSlide?.duration ?? 60}
-                  onChange={(e) => updateSlide(selectedSlideIndex, {
-                    duration: Math.max(5, parseInt(e.target.value) || 60),
-                  })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {formatDuration(currentSlide?.duration ?? 60)}
-                </p>
+                <Label className="text-xs text-muted-foreground">Duration</Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    className="h-8 w-20"
+                    min={5}
+                    max={600}
+                    value={currentSlide?.duration ?? 60}
+                    onChange={(e) => updateSlide(selectedSlideIndex, {
+                      duration: Math.max(5, parseInt(e.target.value) || 60),
+                    })}
+                  />
+                  <span className="text-xs text-muted-foreground w-12">
+                    {formatDuration(currentSlide?.duration ?? 60)}
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Background (color or image URL)</Label>
+                <Label className="text-xs text-muted-foreground">Background</Label>
                 <div className="flex gap-1">
                   <input
                     type="color"
@@ -645,34 +661,41 @@ export default function EditPresentation() {
                     onChange={(e) => updateSlide(selectedSlideIndex, { background: e.target.value })}
                   />
                   <Input
-                    className="h-8 flex-1 text-xs"
+                    className="h-8 w-44 text-xs"
                     value={currentSlide?.background ?? ''}
                     onChange={(e) => updateSlide(selectedSlideIndex, {
                       background: e.target.value || undefined,
                     })}
-                    placeholder="#0f172a or https://..."
+                    placeholder="Theme default"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs">Speaker Notes</Label>
-                <Textarea
+              <div className="space-y-1 flex-1 min-w-[200px]">
+                <Label className="text-xs text-muted-foreground">Speaker Notes</Label>
+                <Input
+                  className="h-8 text-xs"
                   value={currentSlide?.notes ?? ''}
                   onChange={(e) => updateSlide(selectedSlideIndex, { notes: e.target.value })}
                   placeholder="Notes for yourself during the presentation..."
-                  rows={5}
-                  className="text-sm"
                 />
               </div>
-
-              <Separator />
-              <p className="text-xs text-muted-foreground">
-                Select an element on the canvas to edit its properties.
-              </p>
             </div>
-          )}
-        </aside>
+          </div>
+        </main>
+
+        {/* Element Properties Panel — only when an element is selected */}
+        {selectedElement && (
+          <aside className="w-72 border-l bg-card overflow-y-auto flex-shrink-0 p-4">
+            <ElementProperties
+              element={selectedElement}
+              onChange={updateSelectedElement}
+              onDelete={deleteSelectedElement}
+              onLayerChange={changeElementLayer}
+              onPickImage={() => setImageTarget({ kind: 'replace', elementId: selectedElement.id })}
+            />
+          </aside>
+        )}
       </div>
       )}
 
