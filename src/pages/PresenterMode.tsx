@@ -47,13 +47,22 @@ export default function PresenterMode() {
 
   const slideCount = presentation?.slides.length ?? 0;
 
+  // Reveal the controls and (re)start the inactivity timer that hides them.
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = window.setTimeout(() => setControlsVisible(false), 2500);
+  }, []);
+
   const goNext = useCallback(() => {
     setCurrentSlide((i) => Math.min(i + 1, slideCount - 1));
-  }, [slideCount]);
+    showControls();
+  }, [slideCount, showControls]);
 
   const goPrev = useCallback(() => {
     setCurrentSlide((i) => Math.max(i - 1, 0));
-  }, []);
+    showControls();
+  }, [showControls]);
 
   const exit = useCallback(() => {
     if (document.fullscreenElement) {
@@ -118,13 +127,7 @@ export default function PresenterMode() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [presentation, goNext, goPrev, exit, slideCount]);
 
-  // Auto-hide controls after inactivity
-  const showControls = useCallback(() => {
-    setControlsVisible(true);
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = window.setTimeout(() => setControlsVisible(false), 2500);
-  }, []);
-
+  // Show controls initially; clean up the hide timer on unmount
   useEffect(() => {
     showControls();
     return () => {
@@ -229,13 +232,8 @@ export default function PresenterMode() {
         </Button>
       </div>
 
-      {/* Bottom progress bar */}
-      <div
-        className={cn(
-          'absolute bottom-0 inset-x-0 h-1 bg-white/10 transition-opacity duration-300',
-          controlsVisible ? 'opacity-100' : 'opacity-0'
-        )}
-      >
+      {/* Bottom progress bar — always visible for orientation */}
+      <div className="absolute bottom-0 inset-x-0 h-1 bg-white/10">
         <div
           className="h-full bg-white/70 transition-all duration-200"
           style={{ width: `${((currentSlide + 1) / slideCount) * 100}%` }}

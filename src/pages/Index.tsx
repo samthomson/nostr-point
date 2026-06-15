@@ -6,7 +6,6 @@ import { Plus, Layers, WifiOff, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { LoginArea } from '@/components/auth/LoginArea';
 import { AppHeader } from '@/components/AppHeader';
 import { PresentationCard, PresentationCardSkeleton } from '@/components/PresentationCard';
 import { usePresentations } from '@/hooks/usePresentations';
@@ -82,25 +81,6 @@ const Index = () => {
           )
         }
       />
-      
-      {/* Hero */}
-      <section className="bg-gradient-to-b from-primary/5 to-background py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Nostr Point
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Create beautiful slide decks, share them on the decentralized web, 
-            and present with confidence — even offline.
-          </p>
-          
-          {!user && (
-            <div className="flex justify-center gap-4">
-              <LoginArea className="max-w-60" />
-            </div>
-          )}
-        </div>
-      </section>
       
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
