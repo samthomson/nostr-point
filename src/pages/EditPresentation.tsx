@@ -370,10 +370,14 @@ export default function EditPresentation() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="min-w-0">
-              <h1 className="font-semibold text-sm truncate">
-                {title || (isEditing ? 'Edit Presentation' : 'New Presentation')}
-              </h1>
-              <p className="text-xs text-muted-foreground">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Untitled presentation"
+                aria-label="Presentation title"
+                className="h-7 px-2 -ml-2 font-semibold text-sm border-transparent bg-transparent hover:bg-muted/50 focus-visible:bg-background focus-visible:border-input truncate"
+              />
+              <p className="text-xs text-muted-foreground px-0.5">
                 {slides.length} {slides.length === 1 ? 'slide' : 'slides'} • {formatDuration(totalDuration)}
               </p>
             </div>
