@@ -5,12 +5,11 @@ import { nip19 } from 'nostr-tools';
 import { 
   ArrowLeft, 
   ArrowRight, 
-  Maximize, 
+  Play,
   Download,
   CheckCircle,
   Loader2,
   Home,
-  Monitor,
   Layers,
   Pencil,
 } from 'lucide-react';
@@ -89,10 +88,6 @@ export default function PresentationViewer() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [presentation]);
-  
-  const enterFullscreen = useCallback(() => {
-    document.documentElement.requestFullscreen?.();
-  }, []);
   
   const startPresenterMode = useCallback(() => {
     if (nip19Param) {
@@ -179,11 +174,6 @@ export default function PresentationViewer() {
               </Button>
             )}
 
-            <Button variant="outline" size="sm" onClick={enterFullscreen}>
-              <Maximize className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Fullscreen</span>
-            </Button>
-
             {isAuthor && (
               <Button variant="outline" size="sm" asChild>
                 <Link to={`/${nip19Param}/edit`}>
@@ -194,7 +184,7 @@ export default function PresentationViewer() {
             )}
 
             <Button size="sm" onClick={startPresenterMode}>
-              <Monitor className="w-4 h-4 sm:mr-2" />
+              <Play className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Present</span>
             </Button>
           </>
