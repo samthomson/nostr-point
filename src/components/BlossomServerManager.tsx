@@ -7,19 +7,21 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { APP_BLOSSOM_SERVERS } from '@/lib/appBlossom';
 
 /**
- * Manages the user's Blossom media server list (kind 10063).
- * Image/file uploads in the app go to these servers (the first that accepts
- * the upload is used). Publishes a kind 10063 event when the user is logged in.
+ * Local-only Blossom media server override for Nostr Point.
+ *
+ * IMPORTANT: This list is a LOCAL override stored in app config (localStorage).
+ * It is prepopulated from the user's BUD-03 server list (kind 10063) on login
+ * via NostrSync, but editing it here NEVER publishes a kind 10063 event — it
+ * must not clobber the user's global server list in other Blossom-aware apps.
+ * Image uploads go to these servers (the first that accepts the upload is used).
  */
 export function BlossomServerManager() {
   const { config, updateConfig } = useAppContext();
   const { user } = useCurrentUser();
-  const { mutate: publishEvent } = useNostrPublish();
   const { toast } = useToast();
 
   const [servers, setServers] = useState<string[]>(config.blossomServerMetadata.servers);
@@ -62,6 +64,8 @@ export function BlossomServerManager() {
     // eslint-disable-next-line react-hooks/purity
     const now = Math.floor(Date.now() / 1000);
 
+    // Update LOCAL config only. Never publishes a kind 10063 event, so the
+    // user's global Blossom server list (used by other apps) is untouched.
     updateConfig((current) => ({
       ...current,
       blossomServerMetadata: {
@@ -70,28 +74,6 @@ export function BlossomServerManager() {
       },
       useAppBlossomServers: newUseAppServers,
     }));
-
-    if (user) {
-      const tags = newServers.map((url) => ['server', url]);
-      publishEvent(
-        { kind: 10063, content: '', tags },
-        {
-          onSuccess: () => {
-            toast({
-              title: 'Media servers published',
-              description: 'Your Blossom server list has been published to Nostr.',
-            });
-          },
-          onError: () => {
-            toast({
-              title: 'Failed to publish',
-              description: 'Could not publish your media server list.',
-              variant: 'destructive',
-            });
-          },
-        }
-      );
-    }
   };
 
   const handleAddServer = () => {
@@ -276,8 +258,8 @@ export function BlossomServerManager() {
 
       <p className="text-xs text-muted-foreground">
         {user
-          ? 'Your server list is synced from (and published to) Nostr as a kind 10063 event, so it follows you across devices and other Blossom-aware apps.'
-          : 'Log in to sync your media server list with Nostr (kind 10063).'}
+          ? 'This is a local override for Nostr Point only. It\u2019s prefilled from your published server list (kind 10063) when you log in, but changes here stay on this device and won\u2019t modify your server list in other apps.'
+          : 'Log in to prefill from your published media server list (kind 10063). Changes here are local to Nostr Point.'}
       </p>
     </div>
   );

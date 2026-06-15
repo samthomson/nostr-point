@@ -6,8 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAppContext } from '@/hooks/useAppContext';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 
 interface Relay {
@@ -16,10 +14,16 @@ interface Relay {
   write: boolean;
 }
 
+/**
+ * Local-only relay override for Nostr Point.
+ *
+ * IMPORTANT: This list is a LOCAL override stored in app config (localStorage).
+ * It is prepopulated from the user's NIP-65 (kind 10002) on login via NostrSync,
+ * but editing it here NEVER publishes a kind 10002 event — it must not clobber
+ * the user's global relay list in other clients.
+ */
 export function RelayListManager() {
   const { config, updateConfig } = useAppContext();
-  const { user } = useCurrentUser();
-  const { mutate: publishEvent } = useNostrPublish();
   const { toast } = useToast();
 
   const [relays, setRelays] = useState<Relay[]>(config.relayMetadata.relays);
@@ -115,7 +119,8 @@ export function RelayListManager() {
     // eslint-disable-next-line react-hooks/purity
     const now = Math.floor(Date.now() / 1000);
 
-    // Update local config
+    // Update LOCAL config only. Never publishes a kind 10002 event, so the
+    // user's global NIP-65 relay list (used by other clients) is untouched.
     updateConfig((current) => ({
       ...current,
       relayMetadata: {
@@ -123,49 +128,6 @@ export function RelayListManager() {
         updatedAt: now,
       },
     }));
-
-    // Publish to Nostr if user is logged in
-    if (user) {
-      publishNIP65RelayList(newRelays);
-    }
-  };
-
-  const publishNIP65RelayList = (relayList: Relay[]) => {
-    const tags = relayList.map(relay => {
-      if (relay.read && relay.write) {
-        return ['r', relay.url];
-      } else if (relay.read) {
-        return ['r', relay.url, 'read'];
-      } else if (relay.write) {
-        return ['r', relay.url, 'write'];
-      }
-      // If neither read nor write, don't include (shouldn't happen)
-      return null;
-    }).filter((tag): tag is string[] => tag !== null);
-
-    publishEvent(
-      {
-        kind: 10002,
-        content: '',
-        tags,
-      },
-      {
-        onSuccess: () => {
-          toast({
-            title: 'Relay list published',
-            description: 'Your relay list has been published to Nostr.',
-          });
-        },
-        onError: (error) => {
-          console.error('Failed to publish relay list:', error);
-          toast({
-            title: 'Failed to publish relay list',
-            description: 'There was an error publishing your relay list to Nostr.',
-            variant: 'destructive',
-          });
-        },
-      }
-    );
   };
 
   const renderRelayUrl = (url: string): string => {
@@ -282,11 +244,11 @@ export function RelayListManager() {
         </Button>
       </div>
 
-      {!user && (
-        <p className="text-xs text-muted-foreground">
-          Log in to sync your relay list with Nostr
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        This is a local override for Nostr Point only. It&rsquo;s prefilled from your
+        published relay list (NIP-65) when you log in, but changes here stay on this
+        device and won&rsquo;t modify your relay list in other apps.
+      </p>
     </div>
   );
 }

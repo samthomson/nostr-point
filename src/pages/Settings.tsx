@@ -58,8 +58,9 @@ export default function Settings() {
               <CardTitle>Relays</CardTitle>
             </div>
             <CardDescription>
-              Configure which Nostr relays to use for reading and publishing presentations.
-              {!user && ' Log in to sync your relay list to Nostr.'}
+              Configure which Nostr relays Nostr Point uses for reading and publishing
+              presentations. This is a local override prefilled from your published relay
+              list (NIP-65); changes stay on this device.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -76,8 +77,9 @@ export default function Settings() {
             </div>
             <CardDescription>
               Images you upload are stored on Blossom servers. Configure where your
-              media is hosted. The first server in the list is used first.
-              {!user && ' Log in to sync your server list to Nostr.'}
+              media is hosted. The first server in the list is used first. This is a
+              local override prefilled from your published server list; changes stay
+              on this device.
             </CardDescription>
           </CardHeader>
           <CardContent>
