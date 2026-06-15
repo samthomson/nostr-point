@@ -18,6 +18,7 @@ import {
   LayoutPanelLeft,
   FileCode,
   Settings,
+  Layers,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -362,37 +363,20 @@ export default function EditPresentation() {
 
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col">
-      {/* Top bar: navigation + presentation-level actions */}
+      {/* Row 1 — App header: navigation + account + save */}
       <header className="border-b bg-card flex-shrink-0 z-10">
-        <div className="px-4 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="px-4 h-12 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className="min-w-0">
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Untitled presentation"
-                aria-label="Presentation title"
-                className="h-7 px-2 -ml-2 font-semibold text-sm border-transparent bg-transparent hover:bg-muted/50 focus-visible:bg-background focus-visible:border-input truncate"
-              />
-              <p className="text-xs text-muted-foreground px-0.5">
-                {slides.length} {slides.length === 1 ? 'slide' : 'slides'} • {formatDuration(totalDuration)}
-              </p>
-            </div>
+            <Link to="/" className="flex items-center gap-2 shrink-0">
+              <Layers className="w-6 h-6 text-primary" />
+              <span className="font-bold hidden sm:inline">Nostr Point</span>
+            </Link>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="ghost" size="sm" onClick={() => setShowTheme(true)}>
-              <Palette className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Theme</span>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowDetails(true)}>
-              <Settings2 className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Details</span>
-            </Button>
-            <div className="w-px h-6 bg-border mx-1" />
             <Button variant="ghost" size="icon" asChild>
               <Link to="/settings" aria-label="Settings">
                 <Settings className="w-5 h-5" />
@@ -411,7 +395,36 @@ export default function EditPresentation() {
         </div>
       </header>
 
-      {/* Tool strip: mode toggle + insert tools */}
+      {/* Row 2 — Presentation header: title + presentation actions */}
+      <div className="border-b bg-card flex-shrink-0 z-10">
+        <div className="px-4 h-16 flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1 max-w-2xl">
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Untitled presentation"
+              aria-label="Presentation title"
+              className="h-9 px-2 -ml-2 font-semibold text-base border-transparent bg-transparent hover:bg-muted/50 focus-visible:bg-background focus-visible:border-input"
+            />
+            <p className="text-xs text-muted-foreground px-0.5 mt-0.5">
+              {slides.length} {slides.length === 1 ? 'slide' : 'slides'} • {formatDuration(totalDuration)}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setShowTheme(true)}>
+              <Palette className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Theme</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowDetails(true)}>
+              <Settings2 className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Details</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3 — Tool strip: mode toggle + insert tools */}
       <div className="border-b bg-card flex-shrink-0 z-10">
         <div className="px-4 h-12 flex items-center gap-4">
           {/* Visual / Markdown toggle */}
