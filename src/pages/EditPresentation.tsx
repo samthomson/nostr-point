@@ -65,7 +65,6 @@ import {
   createEmptyPresentationContent,
   generatePresentationId,
   formatDuration,
-  calculateTotalDuration,
   getSlideLabel,
   DEFAULT_THEME,
   THEME_PRESETS,
@@ -148,7 +147,6 @@ export default function EditPresentation() {
   });
 
   const currentSlide = slides[selectedSlideIndex];
-  const totalDuration = calculateTotalDuration(slides);
   const selectedElement = currentSlide?.elements?.find(el => el.id === selectedElementId) ?? null;
   const editingTextElement = currentSlide?.elements?.find(el => el.id === editingTextId) ?? null;
 
@@ -383,21 +381,13 @@ export default function EditPresentation() {
               </Link>
             </Button>
             <LoginArea className="max-w-40" />
-            <Button onClick={handleSave} disabled={isPublishing}>
-              {isPublishing ? (
-                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 sm:mr-2" />
-              )}
-              <span className="hidden sm:inline">Save</span>
-            </Button>
           </div>
         </div>
       </header>
 
       {/* Row 2 — Presentation header: title + presentation actions */}
       <div className="border-b bg-card flex-shrink-0 z-10">
-        <div className="px-4 h-16 flex items-center justify-between gap-4">
+        <div className="px-4 h-14 flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1 max-w-2xl">
             <Input
               value={title}
@@ -406,9 +396,6 @@ export default function EditPresentation() {
               aria-label="Presentation title"
               className="h-9 px-2 -ml-2 font-semibold text-base border-transparent bg-transparent hover:bg-muted/50 focus-visible:bg-background focus-visible:border-input"
             />
-            <p className="text-xs text-muted-foreground px-0.5 mt-0.5">
-              {slides.length} {slides.length === 1 ? 'slide' : 'slides'} • {formatDuration(totalDuration)}
-            </p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -419,6 +406,14 @@ export default function EditPresentation() {
             <Button variant="outline" size="sm" onClick={() => setShowDetails(true)}>
               <Settings2 className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Details</span>
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isPublishing}>
+              {isPublishing ? (
+                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 sm:mr-2" />
+              )}
+              <span className="hidden sm:inline">Save</span>
             </Button>
           </div>
         </div>
