@@ -35,32 +35,27 @@ export const APP_BLOSSOM_SERVERS: BlossomServerMetadata = {
 };
 
 /**
- * Get the effective Blossom server list based on user settings.
+ * Get the effective Blossom server list based on user settings, in PRIORITY
+ * order (first = most preferred).
  *
- * - If `useAppBlossomServers` is true, merges app servers with user servers (deduped,
- *   app servers first per BUD-03's "most trusted first" ordering).
- * - If `useAppBlossomServers` is false, returns only the user's servers (deduped).
+ * - The user's own servers always come FIRST (their chosen primary is the
+ *   intended home for uploads).
+ * - If `useAppBlossomServers` is true, the app's default servers are appended
+ *   AFTER the user's servers as fallbacks only.
+ * - If `useAppBlossomServers` is false, only the user's servers are used.
+ *
+ * Uploads should try these in order and only move to the next on actual
+ * failure — not race them.
  */
 export function getEffectiveBlossomServers(
   userMeta: BlossomServerMetadata,
   useAppBlossomServers: boolean,
 ): string[] {
-  if (!useAppBlossomServers) {
-    return deduplicateServers(userMeta.servers);
-  }
+  const ordered = useAppBlossomServers
+    ? [...userMeta.servers, ...APP_BLOSSOM_SERVERS.servers]
+    : userMeta.servers;
 
-  const seen = new Set<string>();
-  const merged: string[] = [];
-
-  for (const url of [...APP_BLOSSOM_SERVERS.servers, ...userMeta.servers]) {
-    const normalized = normalizeUrl(url);
-    if (!seen.has(normalized)) {
-      seen.add(normalized);
-      merged.push(url);
-    }
-  }
-
-  return merged;
+  return deduplicateServers(ordered);
 }
 
 /** Deduplicate servers by normalized URL, preserving order. */

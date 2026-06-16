@@ -368,7 +368,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ isOpen, onClose }) => {
     }
 
     try {
-      const tags = await uploadFile(file);
+      const { tags } = await uploadFile(file);
       const url = tags[0]?.[1];
       if (url) setProfileData((prev) => ({ ...prev, picture: url }));
     } catch {

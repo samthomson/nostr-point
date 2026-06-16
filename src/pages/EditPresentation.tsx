@@ -331,7 +331,7 @@ export default function EditPresentation() {
       const uploading = toast({ title: `Uploading ${file.name}…` });
       try {
         const resized = await resizeImageForUpload(file);
-        const tags = await uploadFile(resized);
+        const { tags, serverHost } = await uploadFile(resized);
         const url = tags.find((t) => t[0] === 'url')?.[1];
         if (url) {
           const w = 480;
@@ -344,6 +344,7 @@ export default function EditPresentation() {
           }));
         }
         uploading.dismiss();
+        toast({ title: 'Image added', description: `Uploaded to ${serverHost}` });
       } catch (error) {
         toast({
           title: 'Upload failed',

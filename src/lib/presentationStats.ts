@@ -17,6 +17,10 @@ export interface PresentationStats {
   shapeCount: number;
   /** Number of distinct external media URLs referenced */
   mediaCount: number;
+  /** Distinct media URLs referenced (images, backgrounds, cover) */
+  mediaUrls: string[];
+  /** Distinct hosts serving the media (e.g. ["bs.samt.st", "blossom.dreamith.to"]) */
+  mediaHosts: string[];
   /** Total planned duration in seconds */
   durationSeconds: number;
   /** Human-readable duration */
@@ -152,6 +156,16 @@ export function computePresentationStats(params: {
 
   const byteSize = utf8Bytes(contentStr) + utf8Bytes(tagsStr) + overhead;
 
+  const mediaUrlList = [...mediaUrls];
+  const hosts = new Set<string>();
+  for (const u of mediaUrlList) {
+    try {
+      hosts.add(new URL(u).host);
+    } catch {
+      // ignore unparseable
+    }
+  }
+
   return {
     slideCount: slides.length,
     elementCount,
@@ -159,6 +173,8 @@ export function computePresentationStats(params: {
     imageCount,
     shapeCount,
     mediaCount: mediaUrls.size,
+    mediaUrls: mediaUrlList,
+    mediaHosts: [...hosts],
     durationSeconds,
     durationLabel: formatDuration(durationSeconds),
     byteSize,

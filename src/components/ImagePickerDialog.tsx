@@ -37,12 +37,12 @@ export function ImagePickerDialog({ open, onOpenChange, onPick }: ImagePickerDia
   const handleFileSelect = useCallback(async (file: File) => {
     try {
       const resized = await resizeImageForUpload(file);
-      const tags = await uploadFile(resized);
+      const { tags, serverHost } = await uploadFile(resized);
       const url = extractUrl(tags);
       if (url) {
         onPick(url);
         onOpenChange(false);
-        toast({ title: 'Image uploaded!' });
+        toast({ title: 'Image uploaded!', description: `Uploaded to ${serverHost}` });
       } else {
         throw new Error('No URL returned from upload');
       }
@@ -98,13 +98,13 @@ export function ImagePickerDialog({ open, onOpenChange, onPick }: ImagePickerDia
       const file = new File([blob], name, { type: blob.type });
 
       const resized = await resizeImageForUpload(file);
-      const tags = await uploadFile(resized);
+      const { tags, serverHost } = await uploadFile(resized);
       const url = extractUrl(tags);
       if (url) {
         onPick(url);
         onOpenChange(false);
         setImportUrl('');
-        toast({ title: 'Image imported!', description: 'Re-hosted on your Blossom server.' });
+        toast({ title: 'Image imported!', description: `Re-hosted on ${serverHost}` });
       } else {
         throw new Error('No URL returned from upload');
       }
