@@ -120,6 +120,56 @@ export function ElementRenderer({ element, theme }: { element: SlideElement; the
   return null;
 }
 
+/**
+ * Wraps children in the largest 16:9 box that fits inside the available space,
+ * constrained by BOTH width and height. Measures its own bounding box and
+ * computes exact pixel dimensions (pure CSS aspect-ratio can't reliably fit
+ * within both dimensions inside a flex layout).
+ */
+export function AspectFit({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect();
+      if (width <= 0 || height <= 0) return;
+      const ratio = CANVAS_WIDTH / CANVAS_HEIGHT; // 16:9
+      let w = width;
+      let h = w / ratio;
+      if (h > height) {
+        h = height;
+        w = h * ratio;
+      }
+      setBox({ width: Math.floor(w), height: Math.floor(h) });
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={outerRef} className="w-full h-full flex items-center justify-center min-h-0 min-w-0">
+      {box && (
+        <div className={className} style={{ width: box.width, height: box.height }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Hook: scale factor to fit the 1280x720 canvas inside a container */
 export function useCanvasScale() {
   const containerRef = useRef<HTMLDivElement>(null);

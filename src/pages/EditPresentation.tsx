@@ -42,7 +42,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { SlideCanvas } from '@/components/SlideCanvas';
-import { SlideRenderer } from '@/components/SlideRenderer';
+import { SlideRenderer, AspectFit } from '@/components/SlideRenderer';
 import { ElementProperties } from '@/components/ElementProperties';
 import { ImagePickerDialog } from '@/components/ImagePickerDialog';
 import { PresentationStatsBar } from '@/components/PresentationStatsBar';
@@ -693,9 +693,9 @@ export default function EditPresentation() {
 
         {/* Canvas Area */}
         <main className="flex-1 min-w-0 flex flex-col bg-muted/50">
-          <div className="flex-1 min-h-0 flex items-center justify-center p-6">
-            {/* Canvas always keeps 16:9 aspect ratio, fitting the available space */}
-            <div className="w-full max-w-5xl max-h-full aspect-video rounded-lg overflow-hidden shadow-xl ring-1 ring-border">
+          <div className="flex-1 min-h-0 p-6">
+            {/* Canvas always keeps 16:9 landscape, fitting the available space */}
+            <AspectFit className="rounded-lg overflow-hidden shadow-xl ring-1 ring-border">
               {currentSlide && (
                 <SlideCanvas
                   slide={currentSlide}
@@ -707,7 +707,7 @@ export default function EditPresentation() {
                   onDropImages={handleDropImages}
                 />
               )}
-            </div>
+            </AspectFit>
           </div>
 
           {/* Bottom editing strip: element properties when selected, else slide settings */}

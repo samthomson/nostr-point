@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SlideRenderer } from '@/components/SlideRenderer';
+import { SlideRenderer, AspectFit } from '@/components/SlideRenderer';
 import { AppHeader } from '@/components/AppHeader';
 import { usePresentation } from '@/hooks/usePresentations';
 import { useOfflinePresentation, useOfflinePresentationData } from '@/hooks/useOfflinePresentation';
@@ -193,10 +193,10 @@ export default function PresentationViewer() {
       
       {/* Slide Area — fills remaining height, slide scales to fit */}
       <main className="flex-1 min-h-0 flex flex-col px-4 pt-4 pb-2 bg-muted/30">
-        <div className="flex-1 min-h-0 flex items-center justify-center">
-          <div className="max-w-full max-h-full aspect-video w-auto h-full rounded-xl overflow-hidden shadow-2xl">
+        <div className="flex-1 min-h-0">
+          <AspectFit className="rounded-xl overflow-hidden shadow-2xl bg-slate-900">
             <SlideRenderer slide={slide} theme={presentation.theme} />
-          </div>
+          </AspectFit>
         </div>
 
         {/* Navigation + progress (compact, single row) */}
