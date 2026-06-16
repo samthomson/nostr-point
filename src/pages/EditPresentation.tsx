@@ -583,7 +583,7 @@ export default function EditPresentation() {
             <Textarea
               value={markdownBuffer}
               onChange={(e) => setMarkdownBuffer(e.target.value)}
-              className="flex-1 resize-none rounded-none border-0 font-mono text-sm p-6 focus-visible:ring-0"
+              className="flex-1 h-0 resize-none rounded-none border-0 font-mono text-sm p-6 focus-visible:ring-0 overflow-y-auto [field-sizing:fixed]"
               placeholder={`# My Title\n\nA subtitle or intro\n\n---\n\n## Second slide\n\n- Point one\n- Point two\n\n![](https://example.com/image.jpg)\n\nNote: speaker notes go here\n\n<!-- duration: 90 -->`}
               spellCheck={false}
             />
@@ -854,8 +854,8 @@ export default function EditPresentation() {
 
       {/* Text Editing Dialog */}
       <Dialog open={Boolean(editingTextId)} onOpenChange={(open) => !open && setEditingTextId(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Edit Text</DialogTitle>
             <DialogDescription>
               Supports markdown: # headings, - bullets, **bold**, *italic*
@@ -877,12 +877,11 @@ export default function EditPresentation() {
                   : s
               ));
             }}
-            rows={8}
-            className="font-mono text-sm"
+            className="font-mono text-sm flex-1 min-h-[200px] h-0 resize-none overflow-y-auto [field-sizing:fixed]"
             autoFocus
           />
 
-          <Button onClick={() => setEditingTextId(null)}>Done</Button>
+          <Button className="flex-shrink-0" onClick={() => setEditingTextId(null)}>Done</Button>
         </DialogContent>
       </Dialog>
 
