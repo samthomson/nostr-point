@@ -17,6 +17,8 @@ interface SlideCanvasProps {
   onSelect: (id: string | null) => void;
   onChange: (elements: SlideElement[]) => void;
   onEditText: (id: string) => void;
+  /** Called when image files are dropped on the canvas, with canvas-space coords. */
+  onDropImages?: (files: File[], x: number, y: number) => void;
 }
 
 type DragMode =
@@ -53,12 +55,29 @@ const MIN_SIZE = 24;
  * Editable slide canvas: click to select, drag to move,
  * resize via 8 handles, double-click text to edit.
  */
-export function SlideCanvas({ slide, theme, selectedId, onSelect, onChange, onEditText }: SlideCanvasProps) {
+export function SlideCanvas({ slide, theme, selectedId, onSelect, onChange, onEditText, onDropImages }: SlideCanvasProps) {
   const { containerRef, scale } = useCanvasScale();
   const backgroundStyle = useSlideBackground(slide, theme);
   const dragRef = useRef<DragMode | null>(null);
   const elementsRef = useRef<SlideElement[]>(slide.elements ?? []);
   const [isDragging, setIsDragging] = useState(false);
+  const [isFileOver, setIsFileOver] = useState(false);
+
+  // Compute canvas-space coordinates from a drop event
+  const dropToCanvasCoords = useCallback((e: React.DragEvent): { x: number; y: number } => {
+    const container = containerRef.current;
+    if (!container) return { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 };
+    const rect = container.getBoundingClientRect();
+    // The canvas is centered within the container and scaled by `scale`
+    const canvasLeft = rect.left + (rect.width - CANVAS_WIDTH * scale) / 2;
+    const canvasTop = rect.top + (rect.height - CANVAS_HEIGHT * scale) / 2;
+    const x = (e.clientX - canvasLeft) / scale;
+    const y = (e.clientY - canvasTop) / scale;
+    return {
+      x: Math.max(0, Math.min(CANVAS_WIDTH, x)),
+      y: Math.max(0, Math.min(CANVAS_HEIGHT, y)),
+    };
+  }, [containerRef, scale]);
 
   // Keep ref in sync with prop
   useEffect(() => {
@@ -149,12 +168,42 @@ export function SlideCanvas({ slide, theme, selectedId, onSelect, onChange, onEd
       ref={containerRef}
       className={cn(
         'relative w-full h-full overflow-hidden flex items-center justify-center select-none',
+        isFileOver && 'ring-4 ring-inset ring-primary',
       )}
       style={backgroundStyle}
       onPointerDown={() => onSelect(null)}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onDragOver={(e) => {
+        if (!onDropImages) return;
+        // Only react to file drags
+        if (Array.from(e.dataTransfer.types).includes('Files')) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          if (!isFileOver) setIsFileOver(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        // Only clear when leaving the container itself
+        if (e.currentTarget === e.target) setIsFileOver(false);
+      }}
+      onDrop={(e) => {
+        if (!onDropImages) return;
+        const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+        if (files.length === 0) return;
+        e.preventDefault();
+        setIsFileOver(false);
+        const { x, y } = dropToCanvasCoords(e);
+        onDropImages(files, x, y);
+      }}
     >
+      {isFileOver && (
+        <div className="absolute inset-0 z-[3000] flex items-center justify-center bg-primary/10 pointer-events-none">
+          <span className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium shadow-lg">
+            Drop image to add
+          </span>
+        </div>
+      )}
       <div
         style={{
           width: CANVAS_WIDTH,

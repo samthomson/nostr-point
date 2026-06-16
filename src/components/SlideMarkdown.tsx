@@ -43,40 +43,51 @@ function parseBlocks(content: string): Block[] {
   const blocks: Block[] = [];
   const lines = content.split('\n');
 
+  // Tracks whether the previous line was blank, which "closes" the current
+  // paragraph/list so the next content starts a fresh block.
+  let brokeBlock = true;
+
   for (const line of lines) {
     const trimmed = line.trimEnd();
 
     if (trimmed.startsWith('### ')) {
       blocks.push({ kind: 'h3', lines: [trimmed.slice(4)] });
+      brokeBlock = true;
     } else if (trimmed.startsWith('## ')) {
       blocks.push({ kind: 'h2', lines: [trimmed.slice(3)] });
+      brokeBlock = true;
     } else if (trimmed.startsWith('# ')) {
       blocks.push({ kind: 'h1', lines: [trimmed.slice(2)] });
+      brokeBlock = true;
     } else if (/^[-*] /.test(trimmed)) {
       const last = blocks[blocks.length - 1];
       const item = trimmed.slice(2);
-      if (last?.kind === 'ul') {
+      if (!brokeBlock && last?.kind === 'ul') {
         last.lines.push(item);
       } else {
         blocks.push({ kind: 'ul', lines: [item] });
       }
+      brokeBlock = false;
     } else if (/^\d+\. /.test(trimmed)) {
       const last = blocks[blocks.length - 1];
       const item = trimmed.replace(/^\d+\. /, '');
-      if (last?.kind === 'ol') {
+      if (!brokeBlock && last?.kind === 'ol') {
         last.lines.push(item);
       } else {
         blocks.push({ kind: 'ol', lines: [item] });
       }
+      brokeBlock = false;
     } else if (trimmed === '') {
-      // Blank line separates blocks; nothing to push
+      // Blank line closes the current block
+      brokeBlock = true;
     } else {
       const last = blocks[blocks.length - 1];
-      if (last?.kind === 'p') {
+      if (!brokeBlock && last?.kind === 'p') {
         last.lines.push(trimmed);
       } else {
         blocks.push({ kind: 'p', lines: [trimmed] });
       }
+      brokeBlock = false;
     }
   }
 
@@ -95,28 +106,32 @@ export function SlideMarkdown({ content }: SlideMarkdownProps) {
   return (
     <>
       {blocks.map((block, bi) => {
+        // Vertical gap between blocks (except the first) so paragraphs and
+        // lists are visually separated. Relative to font size.
+        const spacing = bi > 0 ? { marginTop: '0.6em' } : undefined;
+
         switch (block.kind) {
           case 'h1':
             return (
-              <h1 key={bi} className="font-bold leading-tight" style={{ fontSize: '1.6em' }}>
+              <h1 key={bi} className="font-bold leading-tight" style={{ fontSize: '1.6em', ...spacing }}>
                 {renderInline(block.lines[0], `${bi}`)}
               </h1>
             );
           case 'h2':
             return (
-              <h2 key={bi} className="font-bold leading-tight" style={{ fontSize: '1.3em' }}>
+              <h2 key={bi} className="font-bold leading-tight" style={{ fontSize: '1.3em', ...spacing }}>
                 {renderInline(block.lines[0], `${bi}`)}
               </h2>
             );
           case 'h3':
             return (
-              <h3 key={bi} className="font-semibold leading-tight" style={{ fontSize: '1.1em' }}>
+              <h3 key={bi} className="font-semibold leading-tight" style={{ fontSize: '1.1em', ...spacing }}>
                 {renderInline(block.lines[0], `${bi}`)}
               </h3>
             );
           case 'ul':
             return (
-              <ul key={bi} className="list-disc list-outside" style={{ paddingLeft: '1.2em' }}>
+              <ul key={bi} className="list-disc list-outside" style={{ paddingLeft: '1.2em', ...spacing }}>
                 {block.lines.map((item, li) => (
                   <li key={li}>{renderInline(item, `${bi}-${li}`)}</li>
                 ))}
@@ -124,7 +139,7 @@ export function SlideMarkdown({ content }: SlideMarkdownProps) {
             );
           case 'ol':
             return (
-              <ol key={bi} className="list-decimal list-outside" style={{ paddingLeft: '1.2em' }}>
+              <ol key={bi} className="list-decimal list-outside" style={{ paddingLeft: '1.2em', ...spacing }}>
                 {block.lines.map((item, li) => (
                   <li key={li}>{renderInline(item, `${bi}-${li}`)}</li>
                 ))}
@@ -132,7 +147,7 @@ export function SlideMarkdown({ content }: SlideMarkdownProps) {
             );
           case 'p':
             return (
-              <p key={bi}>
+              <p key={bi} style={spacing}>
                 {block.lines.map((line, li) => (
                   <Fragment key={li}>
                     {li > 0 && <br />}

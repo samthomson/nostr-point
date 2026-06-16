@@ -185,10 +185,16 @@ export function slidesToMarkdown(slides: Slide[]): string {
 
       for (const el of elements) {
         if (el.type === 'text' && el.content) {
-          parts.push(el.content.trim());
+          let text = el.content.trim();
+          // Reflect heading flag as a markdown heading when not already one
+          if (el.heading && !/^#{1,6}\s/.test(text)) {
+            text = `# ${text}`;
+          }
+          parts.push(text);
         } else if (el.type === 'image' && el.src) {
           parts.push(`![](${el.src})`);
         }
+        // Shapes have no markdown representation and are dropped on round-trip
       }
 
       if (slide.duration && slide.duration !== 60) {

@@ -51,6 +51,7 @@ import { useToast } from '@/hooks/useToast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePresentation } from '@/hooks/usePresentations';
 import { usePublishPresentation } from '@/hooks/usePublishPresentation';
+import { useUploadFile } from '@/hooks/useUploadFile';
 import { markdownToSlides, slidesToMarkdown } from '@/lib/markdownSlides';
 import { computePresentationStats } from '@/lib/presentationStats';
 import { cn } from '@/lib/utils';
@@ -154,6 +155,7 @@ export default function EditPresentation() {
   }
 
   const { mutate: publish, isPending: isPublishing } = usePublishPresentation();
+  const { mutateAsync: uploadFile } = useUploadFile();
 
   useSeoMeta({
     title: isEditing ? `Edit: ${title || 'Presentation'}` : 'New Presentation',
@@ -307,13 +309,58 @@ export default function EditPresentation() {
     setImageTarget(null);
   }, [imageTarget, addElement, updateSelectedElement]);
 
+  // Handle images dropped directly onto the canvas: upload to Blossom, then
+  // place each as an image element centered on the drop point.
+  const handleDropImages = useCallback(async (files: File[], x: number, y: number) => {
+    for (const file of files) {
+      const uploading = toast({ title: `Uploading ${file.name}…` });
+      try {
+        const tags = await uploadFile(file);
+        const url = tags.find((t) => t[0] === 'url')?.[1];
+        if (url) {
+          const w = 480;
+          const h = 320;
+          addElement(createImageElement(url, {
+            x: Math.round(x - w / 2),
+            y: Math.round(y - h / 2),
+            width: w,
+            height: h,
+          }));
+        }
+        uploading.dismiss();
+      } catch (error) {
+        toast({
+          title: 'Upload failed',
+          description: error instanceof Error ? error.message : 'Could not upload image.',
+          variant: 'destructive',
+        });
+      }
+    }
+  }, [uploadFile, addElement, toast]);
+
   // ----- Mode switching (Visual <-> Markdown) -----
 
   const enterMarkdownMode = useCallback(() => {
     setMarkdownBuffer(slidesToMarkdown(slides));
     setSelectedElementId(null);
     setMode('markdown');
-  }, [slides]);
+
+    // Warn if the deck uses canvas features markdown can't represent, since
+    // switching back to visual will re-flow to the standard auto-layout.
+    const hasRichLayout = slides.some((s) =>
+      (s.elements ?? []).some((el) =>
+        el.type === 'shape' ||
+        el.rotation ||
+        (el.type === 'text' && (el.color || el.fontFamily))
+      )
+    );
+    if (hasRichLayout) {
+      toast({
+        title: 'Heads up: markdown is simpler than the canvas',
+        description: 'Custom positions, shapes, rotations and per-element colors aren\u2019t captured in markdown. Switching back to Visual will re-flow to the standard layout.',
+      });
+    }
+  }, [slides, toast]);
 
   /** Parse the markdown buffer into slides; returns the new slides */
   const commitMarkdown = useCallback((): Slide[] => {
@@ -624,6 +671,7 @@ export default function EditPresentation() {
                   onSelect={setSelectedElementId}
                   onChange={updateElements}
                   onEditText={setEditingTextId}
+                  onDropImages={handleDropImages}
                 />
               )}
             </div>
