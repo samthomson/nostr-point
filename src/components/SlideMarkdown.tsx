@@ -37,7 +37,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
 }
 
 interface Block {
-  kind: 'h1' | 'h2' | 'h3' | 'ul' | 'ol' | 'p';
+  kind: 'h1' | 'h2' | 'h3' | 'ul' | 'ol' | 'p' | 'code';
   lines: string[];
 }
 
@@ -49,7 +49,31 @@ function parseBlocks(content: string): Block[] {
   // paragraph/list so the next content starts a fresh block.
   let brokeBlock = true;
 
+  // Fenced code block state — preserves exact whitespace/indentation
+  let inCode = false;
+  let codeLines: string[] = [];
+
   for (const line of lines) {
+    // Fenced code block delimiter (``` optionally followed by a language)
+    if (/^```/.test(line.trim())) {
+      if (inCode) {
+        blocks.push({ kind: 'code', lines: codeLines });
+        codeLines = [];
+        inCode = false;
+        brokeBlock = true;
+      } else {
+        inCode = true;
+        codeLines = [];
+      }
+      continue;
+    }
+
+    if (inCode) {
+      // Keep the raw line verbatim (preserve leading spaces)
+      codeLines.push(line);
+      continue;
+    }
+
     const trimmed = line.trimEnd();
 
     if (trimmed.startsWith('### ')) {
@@ -91,6 +115,11 @@ function parseBlocks(content: string): Block[] {
       }
       brokeBlock = false;
     }
+  }
+
+  // Flush an unterminated code fence
+  if (inCode && codeLines.length > 0) {
+    blocks.push({ kind: 'code', lines: codeLines });
   }
 
   return blocks;
@@ -157,6 +186,23 @@ export function SlideMarkdown({ content }: SlideMarkdownProps) {
                   </Fragment>
                 ))}
               </p>
+            );
+          case 'code':
+            return (
+              <pre
+                key={bi}
+                className="rounded-md bg-black/30 overflow-x-auto"
+                style={{
+                  ...spacing,
+                  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                  fontSize: '0.7em',
+                  lineHeight: 1.5,
+                  padding: '0.75em 1em',
+                  whiteSpace: 'pre',
+                }}
+              >
+                {block.lines.join('\n')}
+              </pre>
             );
         }
       })}
