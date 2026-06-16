@@ -461,6 +461,30 @@ export default function EditPresentation() {
     );
   }
 
+  // When opening an EXISTING presentation, show a loader until its data has
+  // loaded into the form — avoids briefly flashing the blank starter deck.
+  if (isEditing && !isInitialized[0]) {
+    const notFound = !existingPresentation.isLoading && !existingPresentation.data;
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-3 bg-background">
+        {notFound ? (
+          <>
+            <Layers className="w-10 h-10 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Presentation not found.</p>
+            <Button variant="outline" size="sm" onClick={() => navigate('/')}>
+              Go Home
+            </Button>
+          </>
+        ) : (
+          <>
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading presentation…</p>
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen overflow-hidden bg-background flex flex-col">
       {/* Row 1 — App header: navigation + account + save */}
