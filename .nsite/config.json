@@ -1,0 +1,24 @@
+{
+  "relays": [
+    "wss://relay.ditto.pub",
+    "wss://relay.nsite.lol",
+    "wss://relay.nosto.re",
+    "wss://relay.primal.net",
+    "wss://relay.damus.io",
+    "wss://purplerelay.com",
+    "wss://relay.relayk.it",
+    "wss://relay.samt.st"
+  ],
+  "servers": [
+    "https://blossom.primal.net",
+    "https://cdn.sovbit.host",
+    "https://blossom.relayk.it",
+    "https://bs.samt.st"
+  ],
+  "id": "nostrpoint",
+  "title": "nostrpoint",
+  "fallback": "/index.html",
+  "gatewayHostnames": [
+    ""
+  ]
+}

@@ -140,7 +140,7 @@ export default function PresentationViewer() {
   const authorName = author.data?.metadata?.name ?? presentation.pubkey.slice(0, 8) + '...';
   
   return (
-    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <AppHeader
         subtitle={`${presentation.title} · by ${authorName} · ${formatDuration(presentation.duration)}`}
@@ -191,79 +191,72 @@ export default function PresentationViewer() {
         }
       />
       
-      {/* Slide Area */}
-      <main className="flex-1 flex flex-col p-4 md:p-8 bg-muted/30">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-6xl aspect-video rounded-xl overflow-hidden shadow-2xl">
+      {/* Slide Area — fills remaining height, slide scales to fit */}
+      <main className="flex-1 min-h-0 flex flex-col px-4 pt-4 pb-2 bg-muted/30">
+        <div className="flex-1 min-h-0 flex items-center justify-center">
+          <div className="max-w-full max-h-full aspect-video w-auto h-full rounded-xl overflow-hidden shadow-2xl">
             <SlideRenderer slide={slide} theme={presentation.theme} />
           </div>
         </div>
-        
-        {/* Navigation */}
-        <div className="mt-6 flex items-center justify-center gap-4">
+
+        {/* Navigation + progress (compact, single row) */}
+        <div className="flex-shrink-0 mt-3 flex items-center gap-3 max-w-4xl w-full mx-auto">
           <Button
             variant="outline"
             size="icon"
+            className="shrink-0"
             onClick={() => setCurrentSlide(prev => Math.max(prev - 1, 0))}
             disabled={currentSlide === 0}
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          
-          <div className="flex items-center gap-2 min-w-[200px] justify-center">
-            <span className="text-lg font-medium">
-              {currentSlide + 1} / {presentation.slides.length}
-            </span>
-            <span className="text-muted-foreground">• {getSlideLabel(slide, currentSlide)}</span>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 text-sm mb-1">
+              <span className="font-medium shrink-0">
+                {currentSlide + 1} / {presentation.slides.length}
+              </span>
+              <span className="text-muted-foreground truncate">
+                {getSlideLabel(slide, currentSlide)}
+              </span>
+            </div>
+            <Progress value={(currentSlide + 1) / presentation.slides.length * 100} className="h-1.5" />
           </div>
-          
+
           <Button
             variant="outline"
             size="icon"
+            className="shrink-0"
             onClick={() => setCurrentSlide(prev => Math.min(prev + 1, presentation.slides.length - 1))}
             disabled={currentSlide === presentation.slides.length - 1}
           >
             <ArrowRight className="w-5 h-5" />
           </Button>
         </div>
-        
-        {/* Progress bar */}
-        <div className="mt-4 max-w-2xl mx-auto w-full">
-          <Progress value={(currentSlide + 1) / presentation.slides.length * 100} />
-        </div>
-        
-        {/* Slide thumbnails — scroll internally, never widen the page */}
-        <div className="mt-6 w-full max-w-6xl mx-auto min-w-0">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {presentation.slides.map((s, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentSlide(i)}
-                className={`
-                  flex-shrink-0 w-24 h-14 rounded border-2 overflow-hidden transition-all
-                  ${i === currentSlide 
-                    ? 'border-primary ring-2 ring-primary/20' 
-                    : 'border-transparent hover:border-muted-foreground/30'
-                  }
-                `}
-              >
-                <div className="w-full h-full bg-slate-800 pointer-events-none">
-                  <SlideRenderer slide={s} theme={presentation.theme} />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
       </main>
-      
-      {/* Keyboard hints */}
-      <footer className="border-t bg-card py-2">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          Use <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">←</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">→</kbd> or{' '}
-          <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">Space</kbd> to navigate
+
+      {/* Slide thumbnails — fixed-height strip, scrolls internally */}
+      <div className="flex-shrink-0 border-t bg-card px-4 py-2">
+        <div className="flex gap-2 overflow-x-auto">
+          {presentation.slides.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentSlide(i)}
+              className={`
+                flex-shrink-0 w-20 h-[45px] rounded border-2 overflow-hidden transition-all
+                ${i === currentSlide
+                  ? 'border-primary ring-2 ring-primary/20'
+                  : 'border-transparent hover:border-muted-foreground/30'
+                }
+              `}
+            >
+              <div className="w-full h-full bg-slate-800 pointer-events-none">
+                <SlideRenderer slide={s} theme={presentation.theme} />
+              </div>
+            </button>
+          ))}
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
