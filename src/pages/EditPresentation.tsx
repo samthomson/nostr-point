@@ -415,12 +415,28 @@ export default function EditPresentation() {
     }, {
       onSuccess: ({ event }) => {
         toast({ title: 'Presentation saved!' });
-        const naddr = nip19.naddrEncode({
-          kind: event.kind,
-          pubkey: event.pubkey,
-          identifier,
-        });
-        navigate(`/${naddr}`);
+
+        // Record the saved baseline so the Save button reflects "Saved"
+        setSavedSnapshot(JSON.stringify({
+          title: title.trim(),
+          summary: summary.trim(),
+          coverImage,
+          topics,
+          slides: finalSlides,
+          theme,
+        }));
+
+        // For a brand-new presentation, switch the URL to this deck's edit
+        // route (replace, no remount jump) so further saves edit the same
+        // event instead of creating duplicates. Stay in the editor either way.
+        if (!isEditing) {
+          const naddr = nip19.naddrEncode({
+            kind: event.kind,
+            pubkey: event.pubkey,
+            identifier,
+          });
+          navigate(`/${naddr}/edit`, { replace: true });
+        }
       },
       onError: (error) => {
         toast({
@@ -430,7 +446,7 @@ export default function EditPresentation() {
         });
       },
     });
-  }, [title, identifier, slides, theme, mode, commitMarkdown, coverImage, summary, topics, publish, navigate, toast]);
+  }, [title, identifier, slides, theme, mode, commitMarkdown, coverImage, summary, topics, isEditing, publish, navigate, toast]);
 
   if (!user) {
     return (

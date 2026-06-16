@@ -140,7 +140,7 @@ export default function PresentationViewer() {
   const authorName = author.data?.metadata?.name ?? presentation.pubkey.slice(0, 8) + '...';
   
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
       {/* Header */}
       <AppHeader
         subtitle={`${presentation.title} · by ${authorName} · ${formatDuration(presentation.duration)}`}
@@ -232,25 +232,27 @@ export default function PresentationViewer() {
           <Progress value={(currentSlide + 1) / presentation.slides.length * 100} />
         </div>
         
-        {/* Slide thumbnails */}
-        <div className="mt-6 flex gap-2 overflow-x-auto pb-2 max-w-6xl mx-auto">
-          {presentation.slides.map((s, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentSlide(i)}
-              className={`
-                flex-shrink-0 w-24 h-14 rounded border-2 overflow-hidden transition-all
-                ${i === currentSlide 
-                  ? 'border-primary ring-2 ring-primary/20' 
-                  : 'border-transparent hover:border-muted-foreground/30'
-                }
-              `}
-            >
-              <div className="w-full h-full bg-slate-800 pointer-events-none">
-                <SlideRenderer slide={s} theme={presentation.theme} />
-              </div>
-            </button>
-          ))}
+        {/* Slide thumbnails — scroll internally, never widen the page */}
+        <div className="mt-6 w-full max-w-6xl mx-auto min-w-0">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {presentation.slides.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentSlide(i)}
+                className={`
+                  flex-shrink-0 w-24 h-14 rounded border-2 overflow-hidden transition-all
+                  ${i === currentSlide 
+                    ? 'border-primary ring-2 ring-primary/20' 
+                    : 'border-transparent hover:border-muted-foreground/30'
+                  }
+                `}
+              >
+                <div className="w-full h-full bg-slate-800 pointer-events-none">
+                  <SlideRenderer slide={s} theme={presentation.theme} />
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </main>
       
