@@ -4,11 +4,11 @@ interface SlideMarkdownProps {
   content: string;
 }
 
-/** Render inline markdown (bold/italic) as React nodes — no innerHTML, XSS-safe */
+/** Render inline markdown (bold/italic/strikethrough) as React nodes — no innerHTML, XSS-safe */
 function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
-  // Split on **bold** and *italic* tokens
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  // Split on ~~strikethrough~~, **bold**, then *italic* tokens (order matters)
+  const regex = /(~~[^~]+~~|\*\*[^*]+\*\*|\*[^*]+\*)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   let i = 0;
@@ -18,7 +18,9 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       nodes.push(text.slice(lastIndex, match.index));
     }
     const token = match[0];
-    if (token.startsWith('**')) {
+    if (token.startsWith('~~')) {
+      nodes.push(<s key={`${keyPrefix}-s${i}`}>{token.slice(2, -2)}</s>);
+    } else if (token.startsWith('**')) {
       nodes.push(<strong key={`${keyPrefix}-b${i}`}>{token.slice(2, -2)}</strong>);
     } else {
       nodes.push(<em key={`${keyPrefix}-i${i}`}>{token.slice(1, -1)}</em>);

@@ -883,7 +883,7 @@ export default function EditPresentation() {
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Edit Text</DialogTitle>
             <DialogDescription>
-              Supports markdown: # headings, - bullets, **bold**, *italic*
+              Supports markdown: # headings, - bullets, **bold**, *italic*, ~~strikethrough~~
             </DialogDescription>
           </DialogHeader>
 
