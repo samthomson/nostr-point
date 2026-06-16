@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -52,6 +52,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePresentation } from '@/hooks/usePresentations';
 import { usePublishPresentation } from '@/hooks/usePublishPresentation';
 import { useUploadFile } from '@/hooks/useUploadFile';
+import { resizeImageForUpload } from '@/lib/imageResize';
 import { markdownToSlides, slidesToMarkdown } from '@/lib/markdownSlides';
 import { computePresentationStats } from '@/lib/presentationStats';
 import { cn } from '@/lib/utils';
@@ -160,6 +161,20 @@ export default function EditPresentation() {
   useSeoMeta({
     title: isEditing ? `Edit: ${title || 'Presentation'}` : 'New Presentation',
   });
+
+  // Prevent the browser from navigating to / opening a file when an image is
+  // dropped outside the canvas drop zone (the default browser behavior).
+  useEffect(() => {
+    const prevent = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('dragover', prevent);
+    window.addEventListener('drop', prevent);
+    return () => {
+      window.removeEventListener('dragover', prevent);
+      window.removeEventListener('drop', prevent);
+    };
+  }, []);
 
   const currentSlide = slides[selectedSlideIndex];
   const selectedElement = currentSlide?.elements?.find(el => el.id === selectedElementId) ?? null;
@@ -315,7 +330,8 @@ export default function EditPresentation() {
     for (const file of files) {
       const uploading = toast({ title: `Uploading ${file.name}…` });
       try {
-        const tags = await uploadFile(file);
+        const resized = await resizeImageForUpload(file);
+        const tags = await uploadFile(resized);
         const url = tags.find((t) => t[0] === 'url')?.[1];
         if (url) {
           const w = 480;
@@ -662,7 +678,8 @@ export default function EditPresentation() {
         {/* Canvas Area */}
         <main className="flex-1 min-w-0 flex flex-col bg-muted/50">
           <div className="flex-1 min-h-0 flex items-center justify-center p-6">
-            <div className="w-full h-full max-w-5xl rounded-lg overflow-hidden shadow-xl ring-1 ring-border">
+            {/* Canvas always keeps 16:9 aspect ratio, fitting the available space */}
+            <div className="w-full max-w-5xl max-h-full aspect-video rounded-lg overflow-hidden shadow-xl ring-1 ring-border">
               {currentSlide && (
                 <SlideCanvas
                   slide={currentSlide}
@@ -677,73 +694,71 @@ export default function EditPresentation() {
             </div>
           </div>
 
-          {/* Compact slide settings strip below the canvas */}
-          <div className="border-t bg-card flex-shrink-0 px-6 py-3">
-            <div className="flex items-end gap-4 flex-wrap">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Duration</Label>
-                <div className="flex items-center gap-1">
+          {/* Bottom editing strip: element properties when selected, else slide settings */}
+          <div className="border-t bg-card flex-shrink-0 px-4 py-3 min-h-[64px]">
+            {selectedElement ? (
+              <ElementProperties
+                element={selectedElement}
+                onChange={updateSelectedElement}
+                onDelete={deleteSelectedElement}
+                onLayerChange={changeElementLayer}
+                onPickImage={() => setImageTarget({ kind: 'replace', elementId: selectedElement.id })}
+                onEditText={() => setEditingTextId(selectedElement.id)}
+              />
+            ) : (
+              <div className="flex items-end gap-4 flex-wrap">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Duration</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      className="h-8 w-20"
+                      min={5}
+                      max={600}
+                      value={currentSlide?.duration ?? 60}
+                      onChange={(e) => updateSlide(selectedSlideIndex, {
+                        duration: Math.max(5, parseInt(e.target.value) || 60),
+                      })}
+                    />
+                    <span className="text-xs text-muted-foreground w-12">
+                      {formatDuration(currentSlide?.duration ?? 60)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Background</Label>
+                  <div className="flex gap-1">
+                    <input
+                      type="color"
+                      className="h-8 w-9 rounded border cursor-pointer bg-transparent"
+                      value={currentSlide?.background?.startsWith('#') ? currentSlide.background : '#0f172a'}
+                      onChange={(e) => updateSlide(selectedSlideIndex, { background: e.target.value })}
+                    />
+                    <Input
+                      className="h-8 w-44 text-xs"
+                      value={currentSlide?.background ?? ''}
+                      onChange={(e) => updateSlide(selectedSlideIndex, {
+                        background: e.target.value || undefined,
+                      })}
+                      placeholder="Theme default"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 flex-1 min-w-[200px]">
+                  <Label className="text-xs text-muted-foreground">Speaker Notes</Label>
                   <Input
-                    type="number"
-                    className="h-8 w-20"
-                    min={5}
-                    max={600}
-                    value={currentSlide?.duration ?? 60}
-                    onChange={(e) => updateSlide(selectedSlideIndex, {
-                      duration: Math.max(5, parseInt(e.target.value) || 60),
-                    })}
+                    className="h-8 text-xs"
+                    value={currentSlide?.notes ?? ''}
+                    onChange={(e) => updateSlide(selectedSlideIndex, { notes: e.target.value })}
+                    placeholder="Notes for yourself during the presentation..."
                   />
-                  <span className="text-xs text-muted-foreground w-12">
-                    {formatDuration(currentSlide?.duration ?? 60)}
-                  </span>
                 </div>
               </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Background</Label>
-                <div className="flex gap-1">
-                  <input
-                    type="color"
-                    className="h-8 w-9 rounded border cursor-pointer bg-transparent"
-                    value={currentSlide?.background?.startsWith('#') ? currentSlide.background : '#0f172a'}
-                    onChange={(e) => updateSlide(selectedSlideIndex, { background: e.target.value })}
-                  />
-                  <Input
-                    className="h-8 w-44 text-xs"
-                    value={currentSlide?.background ?? ''}
-                    onChange={(e) => updateSlide(selectedSlideIndex, {
-                      background: e.target.value || undefined,
-                    })}
-                    placeholder="Theme default"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1 flex-1 min-w-[200px]">
-                <Label className="text-xs text-muted-foreground">Speaker Notes</Label>
-                <Input
-                  className="h-8 text-xs"
-                  value={currentSlide?.notes ?? ''}
-                  onChange={(e) => updateSlide(selectedSlideIndex, { notes: e.target.value })}
-                  placeholder="Notes for yourself during the presentation..."
-                />
-              </div>
-            </div>
+            )}
           </div>
         </main>
-
-        {/* Element Properties Panel — only when an element is selected */}
-        {selectedElement && (
-          <aside className="w-72 border-l bg-card overflow-y-auto flex-shrink-0 p-4">
-            <ElementProperties
-              element={selectedElement}
-              onChange={updateSelectedElement}
-              onDelete={deleteSelectedElement}
-              onLayerChange={changeElementLayer}
-              onPickImage={() => setImageTarget({ kind: 'replace', elementId: selectedElement.id })}
-            />
-          </aside>
-        )}
       </div>
       )}
 

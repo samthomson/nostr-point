@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { useToast } from '@/hooks/useToast';
+import { resizeImageForUpload } from '@/lib/imageResize';
 
 interface ImagePickerDialogProps {
   open: boolean;
@@ -35,7 +36,8 @@ export function ImagePickerDialog({ open, onOpenChange, onPick }: ImagePickerDia
 
   const handleFileSelect = useCallback(async (file: File) => {
     try {
-      const tags = await uploadFile(file);
+      const resized = await resizeImageForUpload(file);
+      const tags = await uploadFile(resized);
       const url = extractUrl(tags);
       if (url) {
         onPick(url);
@@ -95,7 +97,8 @@ export function ImagePickerDialog({ open, onOpenChange, onPick }: ImagePickerDia
       const name = parsed.pathname.split('/').pop() || `image.${ext}`;
       const file = new File([blob], name, { type: blob.type });
 
-      const tags = await uploadFile(file);
+      const resized = await resizeImageForUpload(file);
+      const tags = await uploadFile(resized);
       const url = extractUrl(tags);
       if (url) {
         onPick(url);
