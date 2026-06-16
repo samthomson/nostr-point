@@ -638,8 +638,8 @@ export default function EditPresentation() {
                 className={`
                   group relative rounded-lg border-2 cursor-grab active:cursor-grabbing transition-all overflow-hidden
                   ${selectedSlideIndex === index
-                    ? 'border-primary'
-                    : 'border-transparent hover:border-muted-foreground/30'
+                    ? 'border-primary ring-2 ring-primary/40 shadow-md opacity-100'
+                    : 'border-transparent opacity-60 hover:opacity-100 hover:border-muted-foreground/30'
                   }
                   ${dragIndex === index ? 'opacity-40' : ''}
                   ${dropIndex === index && dragIndex !== index ? 'ring-2 ring-primary ring-offset-2 ring-offset-muted' : ''}
