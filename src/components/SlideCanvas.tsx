@@ -4,6 +4,7 @@ import { ElementRenderer, useCanvasScale, useSlideBackground } from '@/component
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
+  resolveSlideTheme,
   type Slide,
   type SlideElement,
   type Theme,
@@ -13,6 +14,10 @@ import { cn } from '@/lib/utils';
 interface SlideCanvasProps {
   slide: Slide;
   theme: Theme;
+  /** Position of this slide in the deck — resolves gradient themes. */
+  slideIndex?: number;
+  /** Total slides in the deck — resolves gradient themes. */
+  slideCount?: number;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onChange: (elements: SlideElement[]) => void;
@@ -55,9 +60,10 @@ const MIN_SIZE = 24;
  * Editable slide canvas: click to select, drag to move,
  * resize via 8 handles, double-click text to edit.
  */
-export function SlideCanvas({ slide, theme, selectedId, onSelect, onChange, onEditText, onDropImages }: SlideCanvasProps) {
+export function SlideCanvas({ slide, theme, slideIndex = 0, slideCount = 1, selectedId, onSelect, onChange, onEditText, onDropImages }: SlideCanvasProps) {
   const { containerRef, scale } = useCanvasScale();
-  const backgroundStyle = useSlideBackground(slide, theme);
+  const resolved = resolveSlideTheme(theme, slideIndex, slideCount);
+  const backgroundStyle = useSlideBackground(slide, resolved);
   const dragRef = useRef<DragMode | null>(null);
   const elementsRef = useRef<SlideElement[]>(slide.elements ?? []);
   const [isDragging, setIsDragging] = useState(false);
@@ -217,7 +223,7 @@ export function SlideCanvas({ slide, theme, selectedId, onSelect, onChange, onEd
         {/* Elements with interaction wrappers */}
         {elements.map((element) => (
           <div key={element.id}>
-            <ElementRenderer element={element} theme={theme} />
+            <ElementRenderer element={element} theme={resolved} />
             {/* Interaction overlay */}
             <div
               style={{

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
+import type { NostrFilter } from '@nostrify/nostrify';
 
 import { PRESENTATION_KIND, parsePresentation, type Presentation } from '@/lib/types';
 
@@ -14,7 +15,7 @@ export function usePresentations(options?: {
   return useQuery({
     queryKey: ['presentations', options?.author, options?.topic, options?.limit],
     queryFn: async (c) => {
-      const filter: Record<string, unknown> = {
+      const filter: NostrFilter = {
         kinds: [PRESENTATION_KIND],
         limit: options?.limit ?? 50,
       };

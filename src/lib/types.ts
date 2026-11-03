@@ -1,5 +1,7 @@
 import type { NostrEvent } from '@nostrify/nostrify';
 
+import { lerpColor, pickContrastColor } from '@/lib/colors';
+
 /** Kind number for slide presentations */
 export const PRESENTATION_KIND = 31361;
 
@@ -68,6 +70,10 @@ export interface SlideElement {
 /** Available font family choices for themes */
 export type ThemeFont = 'sans' | 'serif' | 'mono' | 'display';
 
+/** Auto-contrast text candidates for gradient themes (slate-900 / slate-50) */
+export const AUTO_TEXT_DARK = '#0f172a';
+export const AUTO_TEXT_LIGHT = '#f8fafc';
+
 /** CSS font-family stacks for each theme font */
 export const FONT_STACKS: Record<ThemeFont, string> = {
   sans: "'Inter', system-ui, -apple-system, sans-serif",
@@ -76,6 +82,7 @@ export const FONT_STACKS: Record<ThemeFont, string> = {
   display: "'Space Grotesk', system-ui, sans-serif",
 };
 
+/** Human-readable labels for the font select */
 export const FONT_LABELS: Record<ThemeFont, string> = {
   sans: 'Sans (Inter)',
   serif: 'Serif (Playfair)',
@@ -97,6 +104,14 @@ export interface Theme {
   headingColor: string;
   /** Default font family */
   font: ThemeFont;
+  /**
+   * Slide-to-slide color transition: when set, each slide's background is
+   * one interpolated step from `from` (first slide) to `to` (last slide),
+   * recomputed as slides are added/removed. Text and heading colors are
+   * picked automatically per slide for contrast; `background` is kept at
+   * the gradient midpoint as a fallback for clients that ignore this.
+   */
+  gradient?: { from: string; to: string };
 }
 
 /** The default theme for new presentations */
@@ -107,6 +122,13 @@ export const DEFAULT_THEME: Theme = {
   font: 'sans',
 };
 
+/** Build a gradient preset; solid fields become midpoint fallbacks */
+function gradientPreset(name: string, from: string, to: string, font: ThemeFont): { name: string; theme: Theme } {
+  const mid = lerpColor(from, to, 0.5) ?? to;
+  const text = pickContrastColor(mid, AUTO_TEXT_DARK, AUTO_TEXT_LIGHT);
+  return { name, theme: { background: mid, textColor: text, headingColor: text, font, gradient: { from, to } } };
+}
+
 /** Built-in theme presets users can pick from */
 export const THEME_PRESETS: { name: string; theme: Theme }[] = [
   { name: 'Midnight', theme: { background: '#0f172a', textColor: '#e2e8f0', headingColor: '#ffffff', font: 'sans' } },
@@ -115,6 +137,8 @@ export const THEME_PRESETS: { name: string; theme: Theme }[] = [
   { name: 'Ocean', theme: { background: '#0c4a6e', textColor: '#e0f2fe', headingColor: '#ffffff', font: 'display' } },
   { name: 'Sunset', theme: { background: '#431407', textColor: '#fed7aa', headingColor: '#ffedd5', font: 'display' } },
   { name: 'Mono Light', theme: { background: '#ffffff', textColor: '#27272a', headingColor: '#000000', font: 'sans' } },
+  gradientPreset('Dusk', '#f8fafc', '#0f172a', 'sans'),
+  gradientPreset('Ember', '#dc2626', '#f59e0b', 'display'),
 ];
 
 /** A single slide in a presentation */
@@ -144,6 +168,23 @@ export interface PresentationContent {
   slides: Slide[];
   /** Presentation-wide theme (optional; defaults applied if missing) */
   theme?: Theme;
+}
+
+/**
+ * Resolve the effective theme for the slide at `index` within a deck of
+ * `count` slides. In gradient mode the background is the interpolated step
+ * and text/heading colors are auto-picked for contrast; a single slide uses
+ * the midpoint. Returns the theme unchanged when no gradient is set or the
+ * gradient colors are unusable. Per-slide `background` and per-element
+ * `color`/`fontFamily` overrides still win downstream.
+ */
+export function resolveSlideTheme(theme: Theme, index: number, count: number): Theme {
+  const g = theme.gradient;
+  if (!g) return theme;
+  const background = lerpColor(g.from, g.to, count > 1 ? index / (count - 1) : 0.5);
+  if (!background) return theme;
+  const textColor = pickContrastColor(background, AUTO_TEXT_DARK, AUTO_TEXT_LIGHT);
+  return { ...theme, background, textColor, headingColor: textColor };
 }
 
 /** Parsed presentation with metadata from tags */

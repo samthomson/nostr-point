@@ -168,7 +168,7 @@ export default function PresenterMode() {
     >
       {/* The slide fills the screen, scaled to the 16:9 canvas */}
       <div className="w-full h-full max-w-[177.78vh] max-h-[56.25vw] aspect-video">
-        <SlideRenderer slide={slide} theme={presentation.theme} />
+        <SlideRenderer slide={slide} theme={presentation.theme} slideIndex={currentSlide} slideCount={slideCount} />
       </div>
 
       {/* Edge nav buttons */}

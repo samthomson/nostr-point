@@ -41,6 +41,21 @@ interface Theme {
   textColor: string;           // Default body text color (hex)
   headingColor: string;        // Default heading text color (hex)
   font: 'sans' | 'serif' | 'mono' | 'display';
+
+  // Optional slide-to-slide color transition. When present, each slide's
+  // background is one linearly interpolated sRGB step from `from` (first
+  // slide) to `to` (last slide) — a single slide uses the midpoint. Steps
+  // are derived from the slide's index and the total slide count at render
+  // time, so they re-spread automatically as slides are added or removed.
+  // `background` is kept at the gradient midpoint as a fallback for clients
+  // that ignore this field. `textColor`/`headingColor` are ignored in this
+  // mode; foreground colors are picked per slide for contrast (whichever of
+  // a near-black/near-white candidate has the higher WCAG contrast ratio).
+  // Per-slide `background` and per-element `color` overrides still win.
+  gradient?: {
+    from: string;              // Hex color of the first slide
+    to: string;                // Hex color of the last slide
+  };
 }
 
 interface Slide {

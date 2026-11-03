@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ import { usePublishPresentation } from '@/hooks/usePublishPresentation';
 import { useUploadFile } from '@/hooks/useUploadFile';
 import { resizeImageForUpload } from '@/lib/imageResize';
 import { markdownToSlides, slidesToMarkdown } from '@/lib/markdownSlides';
+import { isValidHex, lerpColor } from '@/lib/colors';
 import { computePresentationStats } from '@/lib/presentationStats';
 import { cn } from '@/lib/utils';
 import {
@@ -71,7 +73,9 @@ import {
   getSlideLabel,
   DEFAULT_THEME,
   THEME_PRESETS,
+  FONT_STACKS,
   FONT_LABELS,
+  resolveSlideTheme,
 } from '@/lib/types';
 
 /** What the image picker dialog is targeting when it resolves */
@@ -124,6 +128,27 @@ export default function EditPresentation() {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showTheme, setShowTheme] = useState(false);
+
+  // ----- Theme dialog helpers -----
+
+  /** Toggle between solid and slide-transition backgrounds, keeping `background`
+   *  at the gradient midpoint so gradient-unaware clients get a sane fallback. */
+  const setGradientMode = (enabled: boolean) => {
+    if (enabled) {
+      const from = isValidHex(theme.background) ? theme.background : '#ffffff';
+      const to = from.toLowerCase() === '#ffffff' ? '#0f172a' : '#ffffff';
+      setTheme({ ...theme, gradient: { from, to }, background: lerpColor(from, to, 0.5) ?? from });
+    } else if (theme.gradient) {
+      const mid = lerpColor(theme.gradient.from, theme.gradient.to, 0.5) ?? theme.background;
+      setTheme({ background: mid, textColor: theme.textColor, headingColor: theme.headingColor, font: theme.font });
+    }
+  };
+
+  const setGradientColor = (key: 'from' | 'to', value: string) => {
+    if (!theme.gradient) return;
+    const gradient = { ...theme.gradient, [key]: value };
+    setTheme({ ...theme, gradient, background: lerpColor(gradient.from, gradient.to, 0.5) ?? theme.background });
+  };
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -629,7 +654,7 @@ export default function EditPresentation() {
             {markdownToSlides(markdownBuffer).map((slide, i) => (
               <div key={i} className="rounded-lg overflow-hidden ring-1 ring-border">
                 <div className="aspect-video bg-slate-900">
-                  <SlideRenderer slide={slide} theme={theme} />
+                  <SlideRenderer slide={slide} theme={theme} slideIndex={i} slideCount={markdownToSlides(markdownBuffer).length} />
                 </div>
               </div>
             ))}
@@ -676,7 +701,7 @@ export default function EditPresentation() {
               >
                 {/* Mini slide preview */}
                 <div className="aspect-video bg-slate-900 pointer-events-none">
-                  <SlideRenderer slide={slide} theme={theme} />
+                  <SlideRenderer slide={slide} theme={theme} slideIndex={index} slideCount={slides.length} />
                 </div>
 
                 <div className="px-2 py-1 bg-card flex items-center justify-between">
@@ -725,6 +750,8 @@ export default function EditPresentation() {
                 <SlideCanvas
                   slide={currentSlide}
                   theme={theme}
+                  slideIndex={selectedSlideIndex}
+                  slideCount={slides.length}
                   selectedId={selectedElementId}
                   onSelect={setSelectedElementId}
                   onChange={updateElements}
@@ -919,7 +946,7 @@ export default function EditPresentation() {
 
       {/* Theme Dialog */}
       <Dialog open={showTheme} onOpenChange={setShowTheme}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Presentation Theme</DialogTitle>
             <DialogDescription>
@@ -928,37 +955,123 @@ export default function EditPresentation() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5">
+          <div className="space-y-5 flex-1 min-h-0 overflow-y-auto">
             {/* Presets */}
             <div className="space-y-2">
               <Label className="text-xs">Presets</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {THEME_PRESETS.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => setTheme(preset.theme)}
-                    className="rounded-lg overflow-hidden ring-1 ring-border hover:ring-primary transition-all text-left"
+              <div className="grid grid-cols-4 gap-2">
+              {THEME_PRESETS.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => setTheme(preset.theme)}
+                  className="rounded-lg overflow-hidden ring-1 ring-border hover:ring-primary transition-all text-left"
+                >
+                  <div
+                    className="aspect-video flex items-center justify-center p-2"
+                    style={preset.theme.gradient
+                      ? { background: `linear-gradient(90deg, ${preset.theme.gradient.from}, ${preset.theme.gradient.to})` }
+                      : { backgroundColor: preset.theme.background }}
                   >
-                    <div
-                      className="aspect-video flex items-center justify-center p-2"
-                      style={{ backgroundColor: preset.theme.background }}
+                    <span
+                      className="text-sm font-bold truncate"
+                      style={{ color: preset.theme.headingColor, fontFamily: FONT_STACKS[preset.theme.font] }}
                     >
-                      <span
-                        className="text-sm font-bold truncate"
-                        style={{ color: preset.theme.headingColor, fontFamily: FONT_LABELS[preset.theme.font] }}
+                      Aa
+                    </span>
+                  </div>
+                  <div className="px-2 py-1 text-xs bg-card">{preset.name}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Background mode */}
+          <div className="space-y-2">
+            <Label className="text-xs">Background style</Label>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              value={theme.gradient ? 'gradient' : 'solid'}
+              onValueChange={(value) => { if (value) setGradientMode(value === 'gradient'); }}
+            >
+              <ToggleGroupItem value="solid" className="flex-1">Solid color</ToggleGroupItem>
+              <ToggleGroupItem value="gradient" className="flex-1">Slide color transition</ToggleGroupItem>
+            </ToggleGroup>
+            {theme.gradient && (
+              <p className="text-[11px] text-muted-foreground">
+                Backgrounds step from the first to the last slide. Add or remove slides
+                and the steps re-spread automatically.
+              </p>
+            )}
+          </div>
+
+          {theme.gradient ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">From (first slide)</Label>
+                  <div className="flex gap-1">
+                    <input
+                      type="color"
+                      className="h-8 w-9 rounded border cursor-pointer bg-transparent"
+                      value={isValidHex(theme.gradient.from) ? theme.gradient.from : '#ffffff'}
+                      onChange={(e) => setGradientColor('from', e.target.value)}
+                    />
+                    <Input
+                      className="h-8 flex-1 text-xs font-mono"
+                      value={theme.gradient.from}
+                      onChange={(e) => setGradientColor('from', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs">To (last slide)</Label>
+                  <div className="flex gap-1">
+                    <input
+                      type="color"
+                      className="h-8 w-9 rounded border cursor-pointer bg-transparent"
+                      value={isValidHex(theme.gradient.to) ? theme.gradient.to : '#0f172a'}
+                      onChange={(e) => setGradientColor('to', e.target.value)}
+                    />
+                    <Input
+                      className="h-8 flex-1 text-xs font-mono"
+                      value={theme.gradient.to}
+                      onChange={(e) => setGradientColor('to', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Live preview: one swatch per slide at its resolved step */}
+              <div className="space-y-1">
+                <Label className="text-xs">
+                  Across your {slides.length} {slides.length === 1 ? 'slide' : 'slides'}
+                </Label>
+                <div className="flex gap-1">
+                  {slides.map((_, i) => {
+                    const step = resolveSlideTheme(theme, i, slides.length);
+                    return (
+                      <div
+                        key={i}
+                        className="flex-1 min-w-2 h-9 rounded flex items-center justify-center ring-1 ring-border"
+                        style={{ backgroundColor: step.background }}
                       >
-                        Aa
-                      </span>
-                    </div>
-                    <div className="px-2 py-1 text-xs bg-card">{preset.name}</div>
-                  </button>
-                ))}
+                        <span className="text-xs font-bold" style={{ color: step.textColor }}>Aa</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Text and heading colors are picked automatically on each slide for contrast.
+                </p>
               </div>
             </div>
-
-            <Separator />
-
-            {/* Custom controls */}
+          ) : (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs">Background</Label>
@@ -976,23 +1089,6 @@ export default function EditPresentation() {
                     placeholder="#0f172a or https://..."
                   />
                 </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label className="text-xs">Font</Label>
-                <Select
-                  value={theme.font}
-                  onValueChange={(font: ThemeFont) => setTheme({ ...theme, font })}
-                >
-                  <SelectTrigger className="h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(FONT_LABELS) as ThemeFont[]).map((f) => (
-                      <SelectItem key={f} value={f}>{FONT_LABELS[f]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-1">
@@ -1029,7 +1125,29 @@ export default function EditPresentation() {
                 </div>
               </div>
             </div>
+          )}
 
+          {/* Font applies in both modes */}
+          <div className="space-y-1">
+            <Label className="text-xs">Font</Label>
+            <Select
+              value={theme.font}
+              onValueChange={(font: ThemeFont) => setTheme({ ...theme, font })}
+            >
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(FONT_LABELS) as ThemeFont[]).map((f) => (
+                  <SelectItem key={f} value={f}>{FONT_LABELS[f]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          </div>
+
+          {/* Footer stays fixed; content above scrolls */}
+          <div className="flex-shrink-0 pt-1 border-t">
             <Button className="w-full" onClick={() => setShowTheme(false)}>
               Done
             </Button>

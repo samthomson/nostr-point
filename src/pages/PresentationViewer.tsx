@@ -195,7 +195,7 @@ export default function PresentationViewer() {
       <main className="flex-1 min-h-0 flex flex-col px-4 pt-4 pb-2 bg-muted/30">
         <div className="flex-1 min-h-0">
           <AspectFit className="rounded-xl overflow-hidden shadow-2xl bg-slate-900">
-            <SlideRenderer slide={slide} theme={presentation.theme} />
+            <SlideRenderer slide={slide} theme={presentation.theme} slideIndex={currentSlide} slideCount={presentation.slides.length} />
           </AspectFit>
         </div>
 
@@ -251,7 +251,7 @@ export default function PresentationViewer() {
               `}
             >
               <div className="w-full h-full bg-slate-800 pointer-events-none">
-                <SlideRenderer slide={s} theme={presentation.theme} />
+                <SlideRenderer slide={s} theme={presentation.theme} slideIndex={i} slideCount={presentation.slides.length} />
               </div>
             </button>
           ))}

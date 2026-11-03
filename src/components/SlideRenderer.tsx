@@ -3,11 +3,13 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { SlideMarkdown } from '@/components/SlideMarkdown';
 import { useCachedImage } from '@/hooks/useOfflinePresentation';
 import { sanitizeUrl, sanitizeCssColor } from '@/lib/sanitize';
+import { relativeLuminance } from '@/lib/colors';
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
   DEFAULT_THEME,
   FONT_STACKS,
+  resolveSlideTheme,
   type Slide,
   type SlideElement,
   type Theme,
@@ -17,6 +19,10 @@ import { cn } from '@/lib/utils';
 interface SlideRendererProps {
   slide: Slide;
   theme?: Theme;
+  /** Position of this slide in the deck — resolves gradient themes. */
+  slideIndex?: number;
+  /** Total slides in the deck — resolves gradient themes. */
+  slideCount?: number;
   showNotes?: boolean;
   className?: string;
 }
@@ -48,6 +54,13 @@ export function ElementRenderer({ element, theme }: { element: SlideElement; the
       : sanitizeCssColor(theme.textColor);
     const color = safeColor ?? themeColor ?? '#ffffff';
     const fontFamily = FONT_STACKS[element.fontFamily ?? theme.font];
+    // Gradient themes auto-pick text color per slide; a faint adaptive shadow
+    // keeps text legible near the mid-transition contrast flip point.
+    const textShadow = theme.gradient
+      ? (relativeLuminance(color) ?? 0) > 0.4
+        ? '0 1px 3px rgba(0, 0, 0, 0.3)'
+        : '0 1px 3px rgba(255, 255, 255, 0.4)'
+      : undefined;
 
     return (
       <div
@@ -60,6 +73,7 @@ export function ElementRenderer({ element, theme }: { element: SlideElement; the
           fontWeight: element.bold || element.heading ? 700 : undefined,
           overflow: 'hidden',
           lineHeight: 1.35,
+          textShadow,
         }}
       >
         <SlideMarkdown content={element.content ?? ''} />
@@ -226,9 +240,10 @@ export function useSlideBackground(slide: Slide, theme: Theme): React.CSSPropert
  * Read-only slide renderer. Renders the 1280x720 canvas scaled to fit
  * its container (maintains aspect ratio), applying the presentation theme.
  */
-export function SlideRenderer({ slide, theme = DEFAULT_THEME, showNotes = false, className }: SlideRendererProps) {
+export function SlideRenderer({ slide, theme = DEFAULT_THEME, slideIndex = 0, slideCount = 1, showNotes = false, className }: SlideRendererProps) {
   const { containerRef, scale } = useCanvasScale();
-  const backgroundStyle = useSlideBackground(slide, theme);
+  const resolved = resolveSlideTheme(theme, slideIndex, slideCount);
+  const backgroundStyle = useSlideBackground(slide, resolved);
 
   const elements = slide.elements ?? [];
 
@@ -252,7 +267,7 @@ export function SlideRenderer({ slide, theme = DEFAULT_THEME, showNotes = false,
         }}
       >
         {elements.map((element) => (
-          <ElementRenderer key={element.id} element={element} theme={theme} />
+          <ElementRenderer key={element.id} element={element} theme={resolved} />
         ))}
       </div>
 
