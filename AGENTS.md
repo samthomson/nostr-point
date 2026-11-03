@@ -339,10 +339,10 @@ For font installation, color-scheme changes, light/dark theming, or the `isolate
 2. **Build/compile** (required) — **IMPORTANT: The user can only see changes in the preview after running `build_project`. Always build after making changes!**
 3. **Lint** (recommended; fix anything critical)
 4. **Run tests** (if available)
-5. **Git commit** (required)
+5. **Git commit** — only after the user explicitly approves (see below)
 
 ### Using Git
 
 Use `git status` / `git diff` to review changes and `git log` to learn project conventions. If you make a mistake, `git checkout` restores files.
 
-**Always commit when you are finished.** Non-negotiable — every completed task ends with a commit. Don't wait for the user to ask.
+**NEVER commit or push without the user's explicit approval.** Non-negotiable. Finish the work, verify it, then stop and ask; a commit or push happens only after the user says so in the current conversation. "The task is done" is not approval. Never push on your own — pushes are always user-initiated or explicitly confirmed.
