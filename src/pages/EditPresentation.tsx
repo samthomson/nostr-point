@@ -63,6 +63,8 @@ import {
   type SlideElement,
   type Theme,
   type ThemeFont,
+  CANVAS_WIDTH,
+  CANVAS_HEIGHT,
   createEmptySlide,
   createTextElement,
   createImageElement,
@@ -346,39 +348,67 @@ export default function EditPresentation() {
     } else if (target.kind === 'cover') {
       setCoverImage(url);
     }
-    setImageTarget(null);
   }, [imageTarget, addElement, updateSelectedElement]);
 
-  // Handle images dropped directly onto the canvas: upload to Blossom, then
-  // place each as an image element centered on the drop point.
-  const handleDropImages = useCallback(async (files: File[], x: number, y: number) => {
-    for (const file of files) {
-      const uploading = toast({ title: `Uploading ${file.name}…` });
-      try {
-        const resized = await resizeImageForUpload(file);
-        const { tags, serverHost } = await uploadFile(resized);
-        const url = tags.find((t) => t[0] === 'url')?.[1];
-        if (url) {
-          const w = 480;
-          const h = 320;
-          addElement(createImageElement(url, {
-            x: Math.round(x - w / 2),
-            y: Math.round(y - h / 2),
-            width: w,
-            height: h,
-          }));
-        }
-        uploading.dismiss();
-        toast({ title: 'Image added', description: `Uploaded to ${serverHost}` });
-      } catch (error) {
-        toast({
-          title: 'Upload failed',
-          description: error instanceof Error ? error.message : 'Could not upload image.',
-          variant: 'destructive',
-        });
+  /** Resize, upload to Blossom, and place an image element centered on (x, y). */
+  const uploadAndPlaceImage = useCallback(async (file: File, x: number, y: number) => {
+    const uploading = toast({ title: `Uploading ${file.name}…` });
+    try {
+      const resized = await resizeImageForUpload(file);
+      const { tags, serverHost } = await uploadFile(resized);
+      const url = tags.find((t) => t[0] === 'url')?.[1];
+      if (url) {
+        const w = 480;
+        const h = 320;
+        addElement(createImageElement(url, {
+          x: Math.round(x - w / 2),
+          y: Math.round(y - h / 2),
+          width: w,
+          height: h,
+        }));
       }
+      uploading.dismiss();
+      toast({ title: 'Image added', description: `Uploaded to ${serverHost}` });
+    } catch (error) {
+      uploading.dismiss();
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Could not upload image.',
+        variant: 'destructive',
+      });
     }
   }, [uploadFile, addElement, toast]);
+
+  // Drag-drop places each image centered on the drop point.
+  const handleDropImages = useCallback(async (files: File[], x: number, y: number) => {
+    for (const file of files) {
+      await uploadAndPlaceImage(file, x, y);
+    }
+  }, [uploadAndPlaceImage]);
+
+  // Paste image(s) from the clipboard straight onto the current slide,
+  // centered (clipboard carries no position). Never hijacks pastes aimed
+  // at text fields — those keep their default behavior.
+  useEffect(() => {
+    if (mode !== 'visual') return;
+
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target;
+      if (target instanceof Element && target.closest('input, textarea, [contenteditable=""], [contenteditable="true"]')) return;
+
+      const images = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith('image/'));
+      if (images.length === 0) return;
+
+      e.preventDefault();
+      images.forEach((file, i) => {
+        // Cascade slightly so multiple pasted images stay individually grabbable
+        void uploadAndPlaceImage(file, CANVAS_WIDTH / 2 + i * 40, CANVAS_HEIGHT / 2 + i * 40);
+      });
+    };
+
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [mode, uploadAndPlaceImage]);
 
   // ----- Mode switching (Visual <-> Markdown) -----
 
@@ -706,7 +736,7 @@ export default function EditPresentation() {
 
                 <div className="px-2 py-1 bg-card flex items-center justify-between">
                   <span className="text-xs truncate flex-1">
-                    {index + 1}. {getSlideLabel(slide, index)}
+                    {index}. {getSlideLabel(slide, index)}
                   </span>
                   <span className="text-xs text-muted-foreground flex items-center gap-0.5 flex-shrink-0">
                     <Clock className="w-3 h-3" />

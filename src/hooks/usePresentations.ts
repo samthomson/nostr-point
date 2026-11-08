@@ -4,6 +4,16 @@ import type { NostrFilter } from '@nostrify/nostrify';
 
 import { PRESENTATION_KIND, parsePresentation, type Presentation } from '@/lib/types';
 
+/** Queries settle to partial results after this even if every relay is unreachable. */
+const QUERY_TIMEOUT_MS = 10_000;
+
+/** Nostrify's `query()` returns partial results on abort instead of throwing,
+ *  so combining the TanStack signal with a timeout guarantees loading settles. */
+function timeoutSignal(signal: AbortSignal | undefined): AbortSignal {
+  const timeout = AbortSignal.timeout(QUERY_TIMEOUT_MS);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
+}
+
 /** Fetch all presentations, optionally filtered by author or topic */
 export function usePresentations(options?: { 
   author?: string; 
@@ -28,7 +38,7 @@ export function usePresentations(options?: {
         filter['#t'] = [options.topic];
       }
       
-      const events = await nostr.query([filter], { signal: c.signal });
+      const events = await nostr.query([filter], { signal: timeoutSignal(c.signal) });
       
       return events
         .map(parsePresentation)
@@ -52,7 +62,7 @@ export function usePresentation(pubkey: string | undefined, identifier: string |
         authors: [pubkey],
         '#d': [identifier],
         limit: 1,
-      }], { signal: c.signal });
+      }], { signal: timeoutSignal(c.signal) });
       
       if (events.length === 0) return null;
       
@@ -73,7 +83,7 @@ export function useMyPresentations() {
       const events = await nostr.query([{
         kinds: [PRESENTATION_KIND],
         limit: 100,
-      }], { signal: c.signal });
+      }], { signal: timeoutSignal(c.signal) });
       
       return events
         .map(parsePresentation)
